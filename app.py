@@ -1182,14 +1182,27 @@ def book_slot(slot_id):
         return "Only ONE meeting per day is allowed"
 
     # ---------------------------
+    # Get match_id for this mentor + mentee
+    # ---------------------------
+    match = conn.execute("""
+        SELECT id
+        FROM matches
+        WHERE mentor_id=? AND mentee_id=?
+        AND status IN ('approved','final')
+    """, (slot["mentor_id"], mentee_id)).fetchone()
+
+    match_id = match["id"] if match else None
+
+    # ---------------------------
     # Book the slot
     # ---------------------------
     conn.execute("""
         UPDATE meeting_slots
         SET status='booked',
-            mentee_id=?
+            mentee_id=?,
+            match_id=?
         WHERE id=?
-    """, (mentee_id, slot_id))
+    """, (mentee_id, match_id, slot_id))
 
     conn.commit()
     conn.close()

@@ -1,23 +1,12 @@
 import sqlite3
-
 conn = sqlite3.connect("database.db")
 cursor = conn.cursor()
 
-# Mentor availability table
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS mentor_availability (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    mentor_id INTEGER,
-    date TEXT,
-    start_time TEXT,
-    end_time TEXT
-)
-""")
-
-# Meeting slots table
+# Meeting slots table with the REQUIRED match_id column
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS meeting_slots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    match_id INTEGER,  -- This was missing!
     mentor_id INTEGER,
     date TEXT,
     start_time TEXT,
@@ -26,8 +15,5 @@ CREATE TABLE IF NOT EXISTS meeting_slots (
     status TEXT DEFAULT 'available'
 )
 """)
-
 conn.commit()
 conn.close()
-
-print("Database updated successfully")
