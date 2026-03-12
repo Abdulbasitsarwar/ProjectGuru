@@ -137,6 +137,7 @@ def login():
 # ---------------- QUESTIONNAIRE ----------------
 @app.route("/questionnaire", methods=["GET", "POST"])
 def questionnaire():
+
     if "user_id" not in session:
         return redirect("/login")
 
@@ -156,16 +157,26 @@ def questionnaire():
             conn.close()
             return "Please complete all fields"
 
+        # Update user profile and set status to pending
         conn.execute("""
             UPDATE users
             SET level=?, experience=?, domain=?, availability=?, location=?, status='pending'
             WHERE id=?
         """, (level, experience, domain, availability, location, user_id))
 
+        # Save questionnaire answers
         conn.execute("""
             INSERT INTO questionnaires (user_id, help_areas)
             VALUES (?, ?)
         """, (user_id, ", ".join(helps)))
+
+        # ✅ PROFESSIONAL NOTIFICATION
+        create_notification(
+            conn,
+            user_id,
+            "Your application has been submitted and is currently under administrative review.",
+            "/dashboard"
+        )
 
         conn.commit()
         conn.close()
@@ -286,7 +297,6 @@ def dashboard():
         FROM notifications
         WHERE user_id=?
         ORDER BY created_at DESC
-        LIMIT 10
     """, (session["user_id"],)).fetchall()
 
     conn.close()
@@ -304,7 +314,23 @@ def dashboard():
         user_id=session["user_id"]
     )
 
+@app.route("/clear_notifications")
+def clear_notifications():
 
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_db()
+
+    conn.execute("""
+        DELETE FROM notifications
+        WHERE user_id=?
+    """, (session["user_id"],))
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/dashboard")
 
 @app.route("/match")
 def my_match():
@@ -355,9 +381,9 @@ def my_match():
     )
 
 
-# ---------------- ACCEPT MATCH ----------------
 @app.route("/accept_match/<int:match_id>")
 def accept_match(match_id):
+
     if "user_id" not in session:
         return redirect("/login")
 
@@ -386,7 +412,7 @@ def accept_match(match_id):
             (match_id,)
         )
 
-    # Check if both accepted
+    # Check if BOTH accepted
     updated = conn.execute(
         "SELECT mentor_response, mentee_response FROM matches WHERE id=?",
         (match_id,)
@@ -394,28 +420,32 @@ def accept_match(match_id):
 
     if updated["mentor_response"] == "accepted" and updated["mentee_response"] == "accepted":
 
-        # Mark final
+        # Finalize match
         conn.execute(
             "UPDATE matches SET status='final' WHERE id=?",
             (match_id,)
         )
 
-        # ---------- NOTIFICATION: MATCH CONFIRMED ----------
+        # ✅ Notify BOTH users
         create_notification(
             conn,
             match["mentor_id"],
-            "Your mentoring match has been confirmed. You can now start chatting.",
+            "Your mentoring match has been confirmed. Click to view details and start chatting.",
             f"/chat/{match_id}"
         )
 
+        create_notification(
+            conn,
+            match["mentee_id"],
+            "Your mentoring match has been confirmed. Click to view details and start chatting.",
+            f"/chat/{match_id}"
+        )
 
-        # 🔥 Remove ALL other matches involving these users
+        # Remove other matches
         conn.execute("""
             DELETE FROM matches
             WHERE id != ?
-            AND (
-                mentor_id=? OR mentee_id=?
-            )
+            AND (mentor_id=? OR mentee_id=?)
         """, (match_id, match["mentor_id"], match["mentee_id"]))
 
     conn.commit()
@@ -574,13 +604,28 @@ def admin():
         success_rate=success_rate
     )
 
-# ---------------- APPROVE USER ----------------
 @app.route("/approve_user/<int:user_id>")
 def approve_user(user_id):
+
     conn = get_db()
-    conn.execute("UPDATE users SET status='accepted' WHERE id=?", (user_id,))
+
+    # Approve user
+    conn.execute(
+        "UPDATE users SET status='accepted' WHERE id=?",
+        (user_id,)
+    )
+
+    # ✅ PROFESSIONAL NOTIFICATION
+    create_notification(
+        conn,
+        user_id,
+        "Your application has been approved. You can now access the mentoring system.",
+        "/dashboard"
+    )
+
     conn.commit()
     conn.close()
+
     return redirect("/admin")
 
 
@@ -1186,6 +1231,26 @@ def book_slot(slot_id):
         WHERE id=?
     """, (mentee_id, match_id, slot_id))
 
+    # ---------------------------
+    # PROFESSIONAL NOTIFICATIONS
+    # ---------------------------
+
+    # Notify mentor
+    create_notification(
+        conn,
+        slot["mentor_id"],
+        f"A meeting has been scheduled on {slot['date']} at {slot['start_time']}.",
+        "/dashboard?tab=upcoming"
+    )
+
+    # Notify mentee
+    create_notification(
+        conn,
+        mentee_id,
+        f"You have successfully booked a meeting on {slot['date']} at {slot['start_time']}.",
+        "/dashboard?tab=upcoming"
+    )
+
     conn.commit()
     conn.close()
 
@@ -1262,18 +1327,20 @@ def mentor_cancel_meeting(slot_id):
         conn.close()
         return "Unauthorized"
 
-    conn.execute("""
-        UPDATE meeting_slots
-        SET status='available', mentee_id=NULL
-        WHERE id=?
-    """,(slot_id,))
-
-    create_notification(
-        conn,
-        slot["mentee_id"],
-        "Your mentor cancelled the scheduled meeting.",
-        "/dashboard"
+    # ❌ DELETE SLOT COMPLETELY
+    conn.execute(
+        "DELETE FROM meeting_slots WHERE id=?",
+        (slot_id,)
     )
+
+    # 🔔 Notify mentee
+    if slot["mentee_id"]:
+        create_notification(
+            conn,
+            slot["mentee_id"],
+            "Your mentor has cancelled the scheduled meeting. Please book another slot.",
+            "/dashboard?tab=available"
+        )
 
     conn.commit()
     conn.close()
@@ -1425,6 +1492,23 @@ def add_availability(match_id):
     # -----------------------------------------
     # Save changes
     # -----------------------------------------
+    # -----------------------------------------
+    # Notify mentee that new slots are available
+    # -----------------------------------------
+
+    match = conn.execute(
+        "SELECT mentor_id, mentee_id FROM matches WHERE id=?",
+        (match_id,)
+    ).fetchone()
+
+    if match:
+        create_notification(
+            conn,
+            match["mentee_id"],
+            "Your mentor has added new meeting slots. Please check availability.",
+            "/dashboard?tab=available"
+        )
+
     conn.commit()
     conn.close()
 
