@@ -304,26 +304,28 @@ def dashboard():
         user_id=session["user_id"]
     )
 
+
+
 @app.route("/match")
-def match_page():
+def my_match():
 
     if "user_id" not in session:
         return redirect("/login")
 
     conn = get_db()
+    user_id = session["user_id"]
 
     match = conn.execute("""
         SELECT *
         FROM matches
         WHERE (mentor_id=? OR mentee_id=?)
         AND status='final'
-    """,(session["user_id"],session["user_id"])).fetchone()
+    """, (user_id, user_id)).fetchone()
 
-    mentor=None
-    mentee=None
+    mentor = None
+    mentee = None
 
     if match:
-
         mentor = conn.execute(
             "SELECT * FROM users WHERE id=?",
             (match["mentor_id"],)
@@ -334,42 +336,22 @@ def match_page():
             (match["mentee_id"],)
         ).fetchone()
 
+    # ⭐ Needed for navbar Chat link
+    matches = conn.execute("""
+        SELECT *
+        FROM matches
+        WHERE (mentor_id=? OR mentee_id=?)
+        AND status='final'
+    """, (user_id, user_id)).fetchall()
+
     conn.close()
 
     return render_template(
         "match.html",
         match=match,
         mentor=mentor,
-        mentee=mentee
-    )
-
-# ---------------- MY MATCH ----------------
-@app.route("/my_match")
-def my_match():
-
-    if "user_id" not in session:
-        return redirect("/login")
-
-    conn = get_db()
-    user_id = session["user_id"]
-
-    matches = conn.execute("""
-        SELECT m.*, 
-               u1.email AS mentor_email,
-               u2.email AS mentee_email
-        FROM matches m
-        JOIN users u1 ON m.mentor_id = u1.id
-        JOIN users u2 ON m.mentee_id = u2.id
-        WHERE (m.mentor_id=? OR m.mentee_id=?)
-        AND m.status IN ('approved','final')
-    """, (user_id, user_id)).fetchall()
-
-    conn.close()
-
-    return render_template(
-        "my_match.html",
-        matches=matches,
-        user_id=user_id
+        mentee=mentee,
+        matches=matches
     )
 
 
@@ -1208,6 +1190,7 @@ def book_slot(slot_id):
     conn.close()
 
     return redirect(request.referrer)
+
 # ================= MARK MEETING ATTENDED =================
 @app.route("/mark_attended/<int:slot_id>")
 def mark_attended(slot_id):

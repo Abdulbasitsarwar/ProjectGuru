@@ -100,8 +100,13 @@ data-bs-target="#navbarNav">
 <a class="nav-link" href="/dashboard">Dashboard</a>
 </li>
 
+<!-- SAFE CHAT LINK -->
 <li class="nav-item">
-<a class="nav-link" href="/chat/{{ matches[0].id if matches }}">Chat</a>
+{% if matches is defined and matches and matches|length > 0 %}
+    <a class="nav-link" href="/chat/{{ matches[0].id }}">Chat</a>
+{% else %}
+    <a class="nav-link text-muted" href="#" title="You need a match to use chat">Chat</a>
+{% endif %}
 </li>
 
 <li class="nav-item">
