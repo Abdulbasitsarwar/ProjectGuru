@@ -160,16 +160,30 @@ href="/dashboard?tab=past">Past Meetings</a>
 
 <div class="text-end">
 
-<span class="badge bg-success mb-2">Booked</span><br>
+{% if slot.status == "booked" %}
+<span class="badge rounded-pill bg-success px-3 py-2 shadow-sm">
+    <i class="bi bi-check-circle-fill me-1"></i> Booked
+</span>
+{% elif slot.status == "available" %}
+<span class="badge rounded-pill bg-info text-dark px-3 py-2">
+    Available
+</span>
+{% endif %}
+
+<br>
 
 {% if user_id == match.mentee_id %}
 <a href="/cancel_booking/{{slot.id}}?tab=upcoming"
-class="btn btn-outline-danger btn-sm">Cancel</a>
+class="btn btn-link text-danger btn-sm mt-2">
+Cancel
+</a>
 {% endif %}
 
 {% if user_id == match.mentor_id %}
 <a href="/mentor_cancel_meeting/{{slot.id}}?tab=upcoming"
-class="btn btn-outline-danger btn-sm">Cancel</a>
+class="btn btn-link text-danger btn-sm mt-2">
+Cancel
+</a>
 {% endif %}
 
 </div>

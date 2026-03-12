@@ -116,13 +116,14 @@ background:#4b0082;
 <tbody>
 
 {% for user in users %}
-<tr>
+
+<tr style="{% if user.status and user.status|lower == 'pending' %}background-color:#fffbeb;border-left:4px solid #f59e0b;{% endif %}">
 
 <td>{{ user.id }}</td>
 
 <td>
 <a href="/user_profile/{{ user.id }}">
-{{ user.email }}
+<strong>{{ user.email }}</strong>
 </a>
 </td>
 
@@ -135,32 +136,42 @@ background:#4b0082;
 <td>{{ user.level }}</td>
 
 <td>
-{% if user.status == "accepted" %}
+
+{% if user.status and user.status|lower == "accepted" %}
 <span class="badge bg-success">Accepted</span>
-{% elif user.status == "pending" %}
-<span class="badge bg-warning">Pending</span>
+
+{% elif user.status and user.status|lower == "pending" %}
+<span class="badge bg-warning text-dark">Pending Approval</span>
+
 {% else %}
 <span class="badge bg-secondary">{{ user.status }}</span>
+
 {% endif %}
+
 </td>
 
 <td>
 
-{% if user.status == "pending" %}
+<div class="btn-group" role="group">
+
+{% if user.status and user.status|lower == "pending" %}
 <a href="/approve_user/{{ user.id }}" class="btn btn-success btn-sm">
 Approve
 </a>
 {% endif %}
 
 <a href="/remove_user/{{ user.id }}"
-class="btn btn-danger btn-sm"
+class="btn btn-outline-danger btn-sm"
 onclick="return confirm('Remove this user?');">
 Remove
 </a>
 
+</div>
+
 </td>
 
 </tr>
+
 {% endfor %}
 
 </tbody>
