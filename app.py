@@ -191,27 +191,45 @@ def questionnaire():
 @app.route("/dashboard")
 def dashboard():
 
+    # 🔐 Ensure user logged in
     if "user_id" not in session:
         return redirect("/login")
 
     conn = get_db()
 
+    # -------------------------------------------------
+    # 🔴 CRITICAL FIX — Check if user still exists
+    # (handles admin deleting user while logged in)
+    # -------------------------------------------------
     user = conn.execute(
         "SELECT * FROM users WHERE id=?",
         (session["user_id"],)
     ).fetchone()
 
-    matches = conn.execute(
-        "SELECT * FROM matches WHERE mentor_id=? OR mentee_id=?",
-        (session["user_id"], session["user_id"])
-    ).fetchall()
+    if not user:
+        session.clear()
+        conn.close()
+        return redirect("/login")
 
-    # Find confirmed match
+    # -------------------------------------------------
+    # Get matches involving this user
+    # -------------------------------------------------
+    matches = conn.execute("""
+        SELECT * FROM matches
+        WHERE mentor_id=? OR mentee_id=?
+    """, (session["user_id"], session["user_id"])).fetchall()
+
+    # -------------------------------------------------
+    # Find FINAL match only
+    # -------------------------------------------------
     match = None
     for m in matches:
         if m["status"] == "final":
             match = m
 
+    # -------------------------------------------------
+    # Date filter
+    # -------------------------------------------------
     selected_date = request.args.get("filter_date")
     if selected_date == "":
         selected_date = None
@@ -220,9 +238,12 @@ def dashboard():
     upcoming_meetings = []
     past_meetings = []
 
+    # -------------------------------------------------
+    # If user has a FINAL match → load meetings
+    # -------------------------------------------------
     if match:
 
-        # ---------------- GET ALL RELEVANT SLOTS ----------------
+        # ---------- Get slots ----------
         if selected_date:
             slots = conn.execute("""
                 SELECT *
@@ -242,56 +263,40 @@ def dashboard():
                 ORDER BY date, start_time
             """, (match["id"],)).fetchall()
 
-        # ---------------- CLASSIFICATION LOGIC ----------------
+        # ---------- Classify slots ----------
         now = datetime.now()
-
         filtered_slots = []
 
         for slot in slots:
 
-            # Convert slot date + time into real datetime
             slot_dt = datetime.strptime(
                 f"{slot['date']} {slot['start_time']}",
                 "%Y-%m-%d %H:%M"
             )
 
-            # ==================================================
-            # AVAILABLE SLOTS — FUTURE ONLY
-            # ==================================================
+            # FUTURE AVAILABLE
             if slot["status"] == "available":
-
                 if slot_dt > now:
                     filtered_slots.append(slot)
-                # past available slots are ignored
 
-            # ==================================================
-            # BOOKED SLOTS
-            # ==================================================
+            # BOOKED
             elif slot["status"] == "booked":
-
                 if slot_dt > now:
-                    # FUTURE → Upcoming meeting
                     upcoming_meetings.append(slot)
-
                 else:
-                    # PAST → Past meeting (awaiting status)
                     past_meetings.append(slot)
 
-            # ==================================================
-            # COMPLETED / MISSED → ALWAYS PAST
-            # ==================================================
+            # COMPLETED / MISSED
             elif slot["status"] in ["completed", "missed"]:
                 past_meetings.append(slot)
 
-            # ==================================================
-            # CANCELLED → ignore completely
-            # ==================================================
-            # cancelled meetings do not appear anywhere
+            # CANCELLED → ignored
 
-        # replace slots list with filtered future available slots
         slots = filtered_slots
 
-    # ---------------- NOTIFICATIONS ----------------
+    # -------------------------------------------------
+    # Notifications (NO LIMIT — as you requested)
+    # -------------------------------------------------
     notifications = conn.execute("""
         SELECT *
         FROM notifications
@@ -332,53 +337,7 @@ def clear_notifications():
 
     return redirect("/dashboard")
 
-@app.route("/match")
-def my_match():
 
-    if "user_id" not in session:
-        return redirect("/login")
-
-    conn = get_db()
-    user_id = session["user_id"]
-
-    match = conn.execute("""
-        SELECT *
-        FROM matches
-        WHERE (mentor_id=? OR mentee_id=?)
-        AND status='final'
-    """, (user_id, user_id)).fetchone()
-
-    mentor = None
-    mentee = None
-
-    if match:
-        mentor = conn.execute(
-            "SELECT * FROM users WHERE id=?",
-            (match["mentor_id"],)
-        ).fetchone()
-
-        mentee = conn.execute(
-            "SELECT * FROM users WHERE id=?",
-            (match["mentee_id"],)
-        ).fetchone()
-
-    # ⭐ Needed for navbar Chat link
-    matches = conn.execute("""
-        SELECT *
-        FROM matches
-        WHERE (mentor_id=? OR mentee_id=?)
-        AND status='final'
-    """, (user_id, user_id)).fetchall()
-
-    conn.close()
-
-    return render_template(
-        "match.html",
-        match=match,
-        mentor=mentor,
-        mentee=mentee,
-        matches=matches
-    )
 
 
 @app.route("/accept_match/<int:match_id>")
@@ -399,7 +358,7 @@ def accept_match(match_id):
         conn.close()
         return redirect("/dashboard")
 
-    # Record response
+    # ---------------- RECORD USER RESPONSE ----------------
     if user_id == match["mentor_id"]:
         conn.execute(
             "UPDATE matches SET mentor_response='accepted' WHERE id=?",
@@ -412,7 +371,7 @@ def accept_match(match_id):
             (match_id,)
         )
 
-    # Check if BOTH accepted
+    # ---------------- CHECK BOTH ACCEPTED ----------------
     updated = conn.execute(
         "SELECT mentor_response, mentee_response FROM matches WHERE id=?",
         (match_id,)
@@ -420,28 +379,28 @@ def accept_match(match_id):
 
     if updated["mentor_response"] == "accepted" and updated["mentee_response"] == "accepted":
 
-        # Finalize match
+        # FINALIZE MATCH
         conn.execute(
             "UPDATE matches SET status='final' WHERE id=?",
             (match_id,)
         )
 
-        # ✅ Notify BOTH users
+        # Notify BOTH users
         create_notification(
             conn,
             match["mentor_id"],
-            "Your mentoring match has been confirmed. Click to view details and start chatting.",
+            "Your mentoring match has been confirmed. You can now start chatting.",
             f"/chat/{match_id}"
         )
 
         create_notification(
             conn,
             match["mentee_id"],
-            "Your mentoring match has been confirmed. Click to view details and start chatting.",
+            "Your mentoring match has been confirmed. You can now start chatting.",
             f"/chat/{match_id}"
         )
 
-        # Remove other matches
+        # Remove other matches involving these users
         conn.execute("""
             DELETE FROM matches
             WHERE id != ?
@@ -451,7 +410,8 @@ def accept_match(match_id):
     conn.commit()
     conn.close()
 
-    return redirect("/my_match")
+    # ✅ IMPORTANT FIX
+    return redirect("/match")
 
 
 # ---------------- DECLINE MATCH ----------------
@@ -463,7 +423,6 @@ def decline_match(match_id):
 
     conn = get_db()
 
-    # Get mentor & mentee of declined match
     selected = conn.execute("""
         SELECT mentor_id, mentee_id
         FROM matches
@@ -477,21 +436,22 @@ def decline_match(match_id):
     mentor_id = selected["mentor_id"]
     mentee_id = selected["mentee_id"]
 
-    # 1️⃣ Record who declined the match
-    if session["user_id"] == mentor_id:
-        conn.execute("""
-            UPDATE matches
-            SET status='declined', mentor_response='declined'
-            WHERE id=?
-        """, (match_id,))
-    else:
-        conn.execute("""
-            UPDATE matches
-            SET status='declined', mentee_response='declined'
-            WHERE id=?
-        """, (match_id,))
+    # Mark match as declined
+    conn.execute("""
+        UPDATE matches
+        SET status='declined',
+            mentor_response='declined',
+            mentee_response='declined'
+        WHERE id=?
+    """, (match_id,))
 
-    # ---------- NOTIFICATION: MATCH DECLINED ----------
+    # Save pair so they never match again
+    conn.execute("""
+        INSERT INTO declined_pairs (mentor_id, mentee_id)
+        VALUES (?, ?)
+    """, (mentor_id, mentee_id))
+
+    # Notify BOTH users
     create_notification(
         conn,
         mentor_id,
@@ -505,14 +465,6 @@ def decline_match(match_id):
         "A mentoring match has been declined.",
         "/dashboard"
     )
-
-    # 2️⃣ Restore previously hidden matches
-    conn.execute("""
-        UPDATE matches
-        SET status='pending'
-        WHERE status='hidden'
-        AND (mentor_id=? OR mentee_id=?)
-    """, (mentor_id, mentee_id))
 
     conn.commit()
     conn.close()
@@ -629,13 +581,69 @@ def approve_user(user_id):
     return redirect("/admin")
 
 
-# ---------------- REMOVE USER ----------------
+# ---------------- REMOVE USER (ADMIN) ----------------
 @app.route("/remove_user/<int:user_id>")
 def remove_user(user_id):
+
     conn = get_db()
-    conn.execute("DELETE FROM users WHERE id=?", (user_id,))
+
+    # --------------------------------------------------
+    # 1️⃣ Find any matches involving this user
+    # --------------------------------------------------
+    matches = conn.execute("""
+        SELECT id, mentor_id, mentee_id
+        FROM matches
+        WHERE mentor_id=? OR mentee_id=?
+    """, (user_id, user_id)).fetchall()
+
+    # --------------------------------------------------
+    # 2️⃣ Notify the OTHER user + prevent re-matching
+    # --------------------------------------------------
+    for m in matches:
+
+        other_user = m["mentee_id"] if m["mentor_id"] == user_id else m["mentor_id"]
+
+        # Notify remaining user
+        create_notification(
+            conn,
+            other_user,
+            "Your mentoring match is no longer available.",
+            "/dashboard"
+        )
+
+        # Prevent these two from being matched again
+        conn.execute("""
+            INSERT INTO declined_pairs (mentor_id, mentee_id)
+            VALUES (?, ?)
+        """, (m["mentor_id"], m["mentee_id"]))
+
+    # --------------------------------------------------
+    # 3️⃣ Delete matches involving this user
+    # --------------------------------------------------
+    conn.execute("""
+        DELETE FROM matches
+        WHERE mentor_id=? OR mentee_id=?
+    """, (user_id, user_id))
+
+    # --------------------------------------------------
+    # 4️⃣ Delete questionnaire
+    # --------------------------------------------------
+    conn.execute("""
+        DELETE FROM questionnaires
+        WHERE user_id=?
+    """, (user_id,))
+
+    # --------------------------------------------------
+    # 5️⃣ Delete user account
+    # --------------------------------------------------
+    conn.execute("""
+        DELETE FROM users
+        WHERE id=?
+    """, (user_id,))
+
     conn.commit()
     conn.close()
+
     return redirect("/admin")
 
 # ---------------- SCORING FUNCTION ----------------
@@ -744,34 +752,50 @@ def generate_matches():
 
     conn = get_db()
 
-    # Get mentors who are accepted AND not already in a final match
+    # --------------------------------------------------
+    # 🚫 USERS BUSY IN APPROVED OR FINAL MATCHES
+    # (LOCKED USERS — cannot be matched again)
+    # --------------------------------------------------
+    busy_users = conn.execute("""
+        SELECT mentor_id AS uid FROM matches
+        WHERE status IN ('approved', 'final')
+        UNION
+        SELECT mentee_id FROM matches
+        WHERE status IN ('approved', 'final')
+    """).fetchall()
+
+    busy_ids = {u["uid"] for u in busy_users}
+
+    # --------------------------------------------------
+    # AVAILABLE MENTORS
+    # --------------------------------------------------
     mentors = conn.execute("""
         SELECT * FROM users
         WHERE status='accepted'
         AND role IN ('mentor','both')
-        AND id NOT IN (
-            SELECT mentor_id FROM matches WHERE status='final'
-        )
     """).fetchall()
 
-    # Get mentees who are accepted AND not already in a final match
+    # --------------------------------------------------
+    # AVAILABLE MENTEES
+    # --------------------------------------------------
     mentees = conn.execute("""
         SELECT * FROM users
         WHERE status='accepted'
         AND role IN ('mentee','both')
-        AND id NOT IN (
-            SELECT mentee_id FROM matches WHERE status='final'
-        )
     """).fetchall()
 
     for mentor in mentors:
         for mentee in mentees:
 
-            # Prevent matching same user with themselves
+            # ❌ Same user
             if mentor["id"] == mentee["id"]:
                 continue
 
-            # Prevent previously declined pairs
+            # ❌ Skip BUSY users (approved or final)
+            if mentor["id"] in busy_ids or mentee["id"] in busy_ids:
+                continue
+
+            # ❌ Previously declined pair (PERMANENT BLOCK)
             declined = conn.execute("""
                 SELECT 1 FROM declined_pairs
                 WHERE mentor_id=? AND mentee_id=?
@@ -780,28 +804,31 @@ def generate_matches():
             if declined:
                 continue
 
-            # Prevent duplicate matches
+            # ❌ Existing match already exists
             existing = conn.execute("""
                 SELECT 1 FROM matches
                 WHERE mentor_id=? AND mentee_id=?
+                AND status NOT IN ('declined', 'cancelled')
             """, (mentor["id"], mentee["id"])).fetchone()
 
             if existing:
                 continue
 
-            # Calculate compatibility score
+            # --------------------------------------------------
+            # CALCULATE COMPATIBILITY SCORE
+            # --------------------------------------------------
             score, reason = calculate_score(mentor, mentee, conn)
 
-            if score is None:
-                continue
-
-            # Only accept good matches
             if score < 6:
                 continue
 
+            # --------------------------------------------------
+            # CREATE NEW SUGGESTION
+            # --------------------------------------------------
             conn.execute("""
                 INSERT INTO matches
-                (mentor_id, mentee_id, score, reason, status, mentor_response, mentee_response)
+                (mentor_id, mentee_id, score, reason,
+                 status, mentor_response, mentee_response)
                 VALUES (?, ?, ?, ?, 'pending', 'pending', 'pending')
             """, (mentor["id"], mentee["id"], score, reason))
 
@@ -818,7 +845,6 @@ def approve_match(match_id):
 
     conn = get_db()
 
-    # Get mentor & mentee of selected match
     selected = conn.execute("""
         SELECT mentor_id, mentee_id
         FROM matches
@@ -832,30 +858,18 @@ def approve_match(match_id):
     mentor_id = selected["mentor_id"]
     mentee_id = selected["mentee_id"]
 
-    # Approve selected match
+    # --------------------------------------------------
+    # ✔ APPROVE THIS MATCH (LOCK USERS)
+    # --------------------------------------------------
     conn.execute("""
         UPDATE matches
         SET status='approved'
         WHERE id=?
     """, (match_id,))
 
-    # Notify mentor
-    create_notification(
-        conn,
-        mentor_id,
-        "A new mentoring match is available. Please review it.",
-        f"/my_match"
-    )
-
-    # Notify mentee
-    create_notification(
-        conn,
-        mentee_id,
-        "A new mentoring match is available. Please review it.",
-        f"/my_match"
-    )
-
-    # Hide other pending matches involving these users
+    # --------------------------------------------------
+    # 🔒 HIDE OTHER SUGGESTIONS FOR THESE USERS
+    # --------------------------------------------------
     conn.execute("""
         UPDATE matches
         SET status='hidden'
@@ -863,6 +877,23 @@ def approve_match(match_id):
         AND (mentor_id=? OR mentee_id=?)
         AND status='pending'
     """, (match_id, mentor_id, mentee_id))
+
+    # --------------------------------------------------
+    # 🔔 NOTIFY BOTH USERS
+    # --------------------------------------------------
+    create_notification(
+        conn,
+        mentor_id,
+        "A new mentoring match is available. Please review it.",
+        "/match"
+    )
+
+    create_notification(
+        conn,
+        mentee_id,
+        "A new mentoring match is available. Please review it.",
+        "/match"
+    )
 
     conn.commit()
     conn.close()
@@ -879,6 +910,57 @@ def remove_match(match_id):
     conn.close()
     return redirect("/admin")
 
+# ---------------- MY MATCH PAGE ----------------
+@app.route("/match")
+def my_match():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_db()
+    user_id = session["user_id"]
+
+    # 🔥 Get the MOST RELEVANT match for this user
+    match = conn.execute("""
+        SELECT *
+        FROM matches
+        WHERE (mentor_id=? OR mentee_id=?)
+        AND status IN ('approved', 'final')
+        ORDER BY id DESC
+        LIMIT 1
+    """, (user_id, user_id)).fetchone()
+
+    mentor = None
+    mentee = None
+
+    if match:
+        mentor = conn.execute(
+            "SELECT * FROM users WHERE id=?",
+            (match["mentor_id"],)
+        ).fetchone()
+
+        mentee = conn.execute(
+            "SELECT * FROM users WHERE id=?",
+            (match["mentee_id"],)
+        ).fetchone()
+
+    # ⭐ Needed for navbar chat link
+    matches = conn.execute("""
+        SELECT *
+        FROM matches
+        WHERE (mentor_id=? OR mentee_id=?)
+        AND status='final'
+    """, (user_id, user_id)).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "match.html",
+        match=match,
+        mentor=mentor,
+        mentee=mentee,
+        matches=matches
+    )
 
 # ---------------- MATCH DETAILS ----------------
 @app.route("/match_details/<int:match_id>")
