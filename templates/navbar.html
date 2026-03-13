@@ -44,10 +44,12 @@ body{
     font-weight: 700;
     display: flex;
     align-items: center;
+    text-decoration: none;
 }
 
 .navbar-brand img {
-    height: 40px;
+    height: 45px; /* Slightly increased for better visibility */
+    width: auto;
     margin-right: 12px;
 }
 
@@ -82,58 +84,52 @@ body{
 }
 </style>
 
-
 <nav class="navbar navbar-expand-lg sticky-top">
+    <div class="container">
+        <a class="navbar-brand" href="/dashboard">
+            <img src="{{ url_for('static', filename='aston_logo.png') }}" alt="Aston University Logo">
+            PROJECT GURU
+        </a>
 
-<div class="container">
+        <button class="navbar-toggler" type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#navbarNav" 
+                aria-controls="navbarNav" 
+                aria-expanded="false" 
+                aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-<a class="navbar-brand" href="/dashboard">
-    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/6/6b/Aston_University_logo.svg/512px-Aston_University_logo.svg.png" alt="Aston Logo">
-    PROJECT GURU
-</a>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/dashboard">Dashboard</a>
+                </li>
 
-<button class="navbar-toggler" type="button"
-data-bs-toggle="collapse"
-data-bs-target="#navbarNav">
-<span class="navbar-toggler-icon"></span>
-</button>
+                <li class="nav-item">
+                {% if matches is defined and matches and matches|length > 0 %}
+                    <a class="nav-link" href="/chat/{{ matches[0].id }}">Chat</a>
+                {% else %}
+                    <a class="nav-link text-muted" href="#" title="You need a match to use chat">Chat</a>
+                {% endif %}
+                </li>
 
-<div class="collapse navbar-collapse" id="navbarNav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/match">My Match</a>
+                </li>
 
-<ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="/profile">Profile</a>
+                </li>
 
-<li class="nav-item">
-<a class="nav-link" href="/dashboard">Dashboard</a>
-</li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/settings">Settings</a>
+                </li>
 
-<li class="nav-item">
-{% if matches is defined and matches and matches|length > 0 %}
-    <a class="nav-link" href="/chat/{{ matches[0].id }}">Chat</a>
-{% else %}
-    <a class="nav-link text-muted" href="#" title="You need a match to use chat">Chat</a>
-{% endif %}
-</li>
-
-<li class="nav-item">
-<a class="nav-link" href="/match">My Match</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link" href="/profile">Profile</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link" href="/settings">Settings</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link" href="/logout" style="color: var(--aston-red) !important;">Logout</a>
-</li>
-
-</ul>
-
-</div>
-
-</div>
-
+                <li class="nav-item">
+                    <a class="nav-link" href="/logout" style="color: var(--aston-red) !important;">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </div>
 </nav>
