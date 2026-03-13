@@ -1,64 +1,154 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project GURU – Dashboard</title>
+    {% if user.role == "both" %}
 
-<title>Dashboard</title>
+    <div class="mb-4">
 
-<!-- Google Font -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <a href="/dashboard?view=mentor"
+    class="btn btn-outline-primary {% if view=='mentor' %}active{% endif %}">
+    Mentor View
+    </a>
 
-<!-- Bootstrap CSS (REQUIRED) -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <a href="/dashboard?view=mentee"
+    class="btn btn-outline-success {% if view=='mentee' %}active{% endif %}">
+    Mentee View
+    </a>
 
-<!-- Optional Icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    </div>
 
-<style>
+    {% endif %}
 
-body{
-background:#F8FAFC;
-font-family: 'Inter', sans-serif;
-}
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
-.navbar{
-background:#0F172A;
-}
+    <style>
+        :root {
+            --aston-navy: #002d54;
+            --aston-red: #e4003a;
+            --aston-grey: #f4f4f4;
+            --aston-dark-grey: #333333;
+        }
 
-.btn-primary{
-background:#2563EB;
-border:none;
-border-radius:10px;
-}
+        body {
+            background-color: var(--aston-grey);
+            font-family: 'Roboto', sans-serif;
+            color: var(--aston-dark-grey);
+        }
 
-.btn-primary:hover{
-background:#1D4ED8;
-}
+        /* --- DASHBOARD HEADERS --- */
+        .dashboard-header {
+            border-left: 8px solid var(--aston-red);
+            padding-left: 20px;
+            color: var(--aston-navy);
+            margin-bottom: 40px;
+        }
 
-.card{
-border:none;
-border-radius:14px;
-box-shadow:0 4px 18px rgba(0,0,0,0.06);
-}
+        /* --- CARDS & CONTAINERS --- */
+        .card {
+            border: none;
+            border-radius: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
 
-.notifications-scroll{
-max-height:250px;
-overflow-y:auto;
-}
+        .card-header-aston {
+            background-color: var(--aston-navy);
+            color: white;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 12px 20px;
+            letter-spacing: 1px;
+        }
 
-.slot-box{
-max-height:300px;
-overflow-y:auto;
-border-radius:12px;
-background:white;
-padding:12px;
-box-shadow: inset 0 0 0 1px #E5E7EB;
-}
+        /* --- NOTIFICATIONS --- */
+        .notifications-scroll {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        
+        .notification-item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 20px;
+            transition: background 0.2s;
+        }
+        
+        .notification-item:hover {
+            background-color: #fcfcfc;
+        }
 
-</style>
+        /* --- MEETING SCHEDULER --- */
+        .nav-pills .nav-link {
+            border-radius: 0;
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-right: 5px;
+            border: 1px solid #dee2e6;
+        }
 
+        .nav-pills .nav-link.active {
+            background-color: var(--aston-navy);
+            border-color: var(--aston-navy);
+        }
+
+        .slot-box {
+            max-height: 400px;
+            overflow-y: auto;
+            background: white;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .meeting-item {
+            border-left: 4px solid var(--aston-navy);
+            background: #fff;
+            border-radius: 0;
+            transition: all 0.2s;
+        }
+
+        .meeting-item:hover {
+            background: #fdfdfd;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+        }
+
+        /* --- BUTTONS & BADGES --- */
+        .btn-aston-red {
+            background-color: var(--aston-red);
+            color: white;
+            border: none;
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .btn-aston-red:hover { background-color: #b3002d; color: white; }
+
+        .btn-aston-outline {
+            border: 2px solid var(--aston-navy);
+            color: var(--aston-navy);
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-aston {
+            border-radius: 0;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            font-weight: 700;
+        }
+
+        .form-control, .form-select {
+            border-radius: 0;
+            border: 1px solid #ced4da;
+        }
+    </style>
 </head>
-
 
 <body>
 
@@ -66,355 +156,176 @@ box-shadow: inset 0 0 0 1px #E5E7EB;
 
 <div class="container mt-5">
 
-<h2 class="mb-4 fw-bold">Dashboard</h2>
+    <div class="dashboard-header">
+        <h2 class="fw-bold">Student Dashboard</h2>
+        <p class="text-muted mb-0">Welcome back to the Project GURU Mentoring Scheme.</p>
+    </div>
 
+    <div class="row">
+        
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header-aston">
+                    <i class="bi bi-bell-fill me-2"></i> Recent Activity
+                </div>
+                <div class="card-body p-0">
+                    {% if notifications %}
+                    <div class="notifications-scroll">
+                        {% for n in notifications %}
+                        <div class="notification-item d-flex justify-content-between align-items-center">
+                            <span class="small">{{ n.message }}</span>
+                            {% if n.link %}
+                            <a href="{{ n.link }}" class="btn btn-sm btn-aston-red ms-2">View</a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="p-4 text-center text-muted italic">No new notifications</div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white border-0 text-end">
+                    <a href="/clear_notifications" class="text-danger small fw-bold text-decoration-none">Clear All</a>
+                </div>
+            </div>
+        </div>
 
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header-aston">
+                    <i class="bi bi-calendar3 me-2"></i> Meeting Scheduler
+                </div>
+                <div class="card-body">
+                    
+                    <ul class="nav nav-pills mb-4">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.args.get('tab','upcoming') == 'upcoming' %}active{% endif %}" href="/dashboard?tab=upcoming">Upcoming</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.args.get('tab') == 'available' %}active{% endif %}" href="/dashboard?tab=available">Available Slots</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.args.get('tab') == 'past' %}active{% endif %}" href="/dashboard?tab=past">Past History</a>
+                        </li>
+                    </ul>
 
-<!-- ================= NOTIFICATIONS ================= -->
+                    {% if request.args.get("tab","upcoming") == "upcoming" %}
+                    <div class="slot-box">
+                        {% for slot in upcoming_meetings %}
+                        <div class="card mb-3 border shadow-sm meeting-item">
+                            <div class="card-body d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1 fw-bold text-primary"><i class="bi bi-calendar-check me-2"></i> {{ slot.date }}</h6>
+                                    <small class="text-muted fw-bold">TIME: {{ slot.start_time }} — {{ slot.end_time }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge badge-aston bg-success mb-2 d-block">Confirmed</span>
+                                    {% if user_id == match.mentee_id %}
+                                    <a href="/cancel_booking/{{slot.id}}?tab=upcoming" class="btn btn-link text-danger btn-sm p-0 fw-bold">Cancel Booking</a>
+                                    {% elif user_id == match.mentor_id %}
+                                    <a href="/mentor_cancel_meeting/{{slot.id}}?tab=upcoming" class="btn btn-link text-danger btn-sm p-0 fw-bold">Cancel Meeting</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5 text-muted">No upcoming meetings scheduled</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
 
-<div class="card mb-4">
-<div class="card-body">
+                    {% if request.args.get("tab") == "available" %}
+                        {% if user_id == match.mentor_id %}
+                        <div class="p-3 bg-light border mb-4">
+                            <h6 class="fw-bold text-uppercase small mb-3">Add New Availability</h6>
+                            <form method="POST" action="/add_availability/{{match.id}}" class="row g-2">
+                                <div class="col-md-4"><input type="date" name="date" class="form-control" min="{{current_date}}" required></div>
+                                <div class="col-md-3"><input type="time" name="start_time" class="form-control" required></div>
+                                <div class="col-md-3"><input type="time" name="end_time" class="form-control" required></div>
+                                <div class="col-md-2"><button class="btn btn-aston-red w-100">Add</button></div>
+                            </form>
+                        </div>
+                        {% endif %}
 
-<h5 class="mb-3">🔔 Notifications</h5>
-<div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="slot-box">
+                            {% for slot in slots if slot.status == "available" %}
+                            <div class="card mb-2 border meeting-item">
+                                <div class="card-body d-flex justify-content-between align-items-center py-2">
+                                    <div><span class="fw-bold">{{slot.date}}</span> <span class="text-muted ms-3">{{slot.start_time}} - {{slot.end_time}}</span></div>
+                                    <div>
+                                        {% if user_id == match.mentee_id %}<a href="/book_slot/{{slot.id}}?tab=available" class="btn btn-success btn-sm rounded-0 fw-bold">BOOK</a>{% endif %}
+                                        {% if user_id == match.mentor_id %}<a href="/cancel_slot/{{slot.id}}?tab=available" class="btn btn-outline-danger btn-sm rounded-0 fw-bold">REMOVE</a>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5 text-muted">No available slots found</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
 
-<span class="text-muted small">Recent activity</span>
+                    {% if request.args.get("tab") == "past" %}
+                    <div class="slot-box">
+                        {% for slot in past_meetings %}
+                        <div class="card mb-2 border meeting-item">
+                            <div class="card-body d-flex justify-content-between align-items-center py-2">
+                                <div><span class="fw-bold">{{slot.date}}</span> <small class="ms-2 text-muted">({{slot.start_time}})</small></div>
+                                <div>
+                                    {% if slot.status == "completed" %}<span class="badge bg-success badge-aston">Attended</span>
+                                    {% elif slot.status == "missed" %}<span class="badge bg-danger badge-aston">Missed</span>
+                                    {% endif %}
+                                    
+                                    {% if user_id == match.mentor_id %}
+                                    <a href="/mark_attended/{{slot.id}}?tab=past" class="btn btn-outline-success btn-sm rounded-0 ms-2 fw-bold">Mark Attended</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5 text-muted">No session history found</div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
 
-<a href="/clear_notifications"
-class="btn btn-outline-danger btn-sm">
-Clear All
-</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if match and match.status == "final" %}
+    <div class="card mb-5">
+        <div class="card-header-aston bg-danger">
+            <i class="bi bi-star-fill me-2"></i> Session Feedback
+        </div>
+        <div class="card-body">
+            <form method="POST" action="/give_feedback/{{ match.id }}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-uppercase">Overall Rating</label>
+                        <select name="rating" class="form-select mb-3" required>
+                            <option value="">Select Stars</option>
+                            <option value="5">5 ⭐⭐⭐⭐⭐ (Excellent)</option>
+                            <option value="4">4 ⭐⭐⭐⭐ (Good)</option>
+                            <option value="3">3 ⭐⭐⭐ (Average)</option>
+                            <option value="2">2 ⭐⭐ (Poor)</option>
+                            <option value="1">1 ⭐ (Very Poor)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label fw-bold small text-uppercase">Your Experience</label>
+                        <textarea name="comment" class="form-control mb-3" rows="3" placeholder="Please share your thoughts on the mentoring sessions..." required></textarea>
+                        <div class="text-end">
+                            <button class="btn btn-aston-red px-5">Submit Feedback</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 
 </div>
 
-</div>
-{% if notifications %}
-
-<ul class="list-group notifications-scroll">
-
-{% for n in notifications %}
-
-<li class="list-group-item d-flex justify-content-between align-items-center border-0">
-
-<div>
-{{ n.message }}
-
-{% if n.link %}
-<a href="{{ n.link }}" class="btn btn-sm btn-primary ms-2">Open</a>
-{% endif %}
-</div>
-
-</li>
-
-{% endfor %}
-
-</ul>
-
-{% else %}
-
-<div class="empty-state">
-No notifications yet
-</div>
-
-{% endif %}
-
-</div>
-</div>
-
-
-
-<!-- ===================================================== -->
-<!-- ================= MEETING SCHEDULER ================= -->
-<!-- ===================================================== -->
-
-<div class="card mb-4">
-<div class="card-body">
-
-<h4 class="mb-4 fw-bold text-primary">📅 Meeting Scheduler</h4>
-
-<ul class="nav nav-pills mb-4">
-
-<li class="nav-item">
-<a class="nav-link {% if request.args.get('tab','upcoming') == 'upcoming' %}active{% endif %}"
-href="/dashboard?tab=upcoming">Upcoming</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link {% if request.args.get('tab') == 'available' %}active{% endif %}"
-href="/dashboard?tab=available">Available Slots</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link {% if request.args.get('tab') == 'past' %}active{% endif %}"
-href="/dashboard?tab=past">Past Meetings</a>
-</li>
-
-</ul>
-
-
-
-<!-- ================= UPCOMING ================= -->
-
-{% if request.args.get("tab","upcoming") == "upcoming" %}
-
-<div class="slot-box">
-
-{% for slot in upcoming_meetings %}
-
-<div class="card mb-3 border-0 shadow-sm">
-<div class="card-body d-flex justify-content-between align-items-center">
-
-<div>
-<h6 class="mb-1 fw-semibold">📅 {{ slot.date }}</h6>
-<small class="text-muted">⏰ {{ slot.start_time }} — {{ slot.end_time }}</small>
-</div>
-
-<div class="text-end">
-
-{% if slot.status == "booked" %}
-<span class="badge rounded-pill bg-success px-3 py-2 shadow-sm">
-    <i class="bi bi-check-circle-fill me-1"></i> Booked
-</span>
-{% elif slot.status == "available" %}
-<span class="badge rounded-pill bg-info text-dark px-3 py-2">
-    Available
-</span>
-{% endif %}
-
-<br>
-
-{% if user_id == match.mentee_id %}
-<a href="/cancel_booking/{{slot.id}}?tab=upcoming"
-class="btn btn-link text-danger btn-sm mt-2">
-Cancel
-</a>
-{% endif %}
-
-{% if user_id == match.mentor_id %}
-<a href="/mentor_cancel_meeting/{{slot.id}}?tab=upcoming"
-class="btn btn-link text-danger btn-sm mt-2">
-Cancel
-</a>
-{% endif %}
-
-</div>
-
-</div>
-</div>
-
-{% else %}
-
-<div class="empty-state">No upcoming meetings scheduled</div>
-
-{% endfor %}
-
-</div>
-
-{% endif %}
-
-
-
-<!-- ================= AVAILABLE ================= -->
-
-{% if request.args.get("tab") == "available" %}
-
-{% if user_id == match.mentor_id %}
-
-<div class="card mb-4 border-0 shadow-sm">
-<div class="card-body">
-
-<h6 class="fw-bold mb-3">➕ Add Availability</h6>
-
-<form method="POST" action="/add_availability/{{match.id}}" class="row g-2">
-
-<div class="col-md-4">
-<input type="date" name="date" class="form-control" min="{{current_date}}" required>
-</div>
-
-<div class="col-md-3">
-<input type="time" name="start_time" class="form-control" required>
-</div>
-
-<div class="col-md-3">
-<input type="time" name="end_time" class="form-control" required>
-</div>
-
-<div class="col-md-2">
-<button class="btn btn-primary w-100">Create</button>
-</div>
-
-</form>
-
-</div>
-</div>
-
-{% endif %}
-
-
-<form method="GET" class="d-flex gap-2 mb-3">
-
-<input type="hidden" name="tab" value="available">
-
-<input
-type="date"
-name="filter_date"
-class="form-control"
-style="max-width:220px"
-min="{{current_date}}"
-value="{{request.args.get('filter_date','')}}"
->
-
-<button class="btn btn-dark">Filter</button>
-
-</form>
-
-
-<div class="slot-box">
-
-{% for slot in slots if slot.status == "available" %}
-
-<div class="card mb-3 border-0 shadow-sm">
-<div class="card-body d-flex justify-content-between align-items-center">
-
-<div>
-<h6 class="mb-1 fw-semibold">📅 {{slot.date}}</h6>
-<small class="text-muted">⏰ {{slot.start_time}} — {{slot.end_time}}</small>
-</div>
-
-<div>
-
-{% if user_id == match.mentee_id %}
-<a href="/book_slot/{{slot.id}}?tab=available"
-class="btn btn-success btn-sm">Book</a>
-{% endif %}
-
-{% if user_id == match.mentor_id %}
-<a href="/cancel_slot/{{slot.id}}?tab=available"
-class="btn btn-outline-danger btn-sm">Remove</a>
-{% endif %}
-
-</div>
-
-</div>
-</div>
-
-{% else %}
-
-<div class="empty-state">No available slots</div>
-
-{% endfor %}
-
-</div>
-
-{% endif %}
-
-
-
-<!-- ================= PAST ================= -->
-
-{% if request.args.get("tab") == "past" %}
-
-<div class="slot-box">
-
-{% for slot in past_meetings %}
-
-<div class="card mb-3 border-0 shadow-sm">
-<div class="card-body d-flex justify-content-between align-items-center">
-
-<div>
-<h6 class="mb-1 fw-semibold">📅 {{slot.date}}</h6>
-<small class="text-muted">⏰ {{slot.start_time}} — {{slot.end_time}}</small>
-</div>
-
-<div class="text-end">
-
-{% if user_id == match.mentor_id %}
-
-{% if slot.status == "completed" %}
-<span class="badge bg-success me-2">Attended</span>
-{% elif slot.status == "missed" %}
-<span class="badge bg-danger me-2">Missed</span>
-{% else %}
-<span class="badge bg-secondary me-2">Not marked</span>
-{% endif %}
-
-<a href="/mark_attended/{{slot.id}}?tab=past"
-class="btn btn-outline-success btn-sm">Mark Attended</a>
-
-<a href="/mark_missed/{{slot.id}}?tab=past"
-class="btn btn-outline-danger btn-sm">Mark Missed</a>
-
-{% else %}
-
-{% if slot.status == "completed" %}
-<span class="badge bg-success">Attended</span>
-{% elif slot.status == "missed" %}
-<span class="badge bg-danger">Missed</span>
-{% endif %}
-
-{% endif %}
-
-</div>
-
-</div>
-</div>
-
-{% else %}
-
-<div class="empty-state">No past meetings</div>
-
-{% endfor %}
-
-</div>
-
-{% endif %}
-
-</div>
-</div>
-
-
-
-<!-- ================= FEEDBACK ================= -->
-
-{% if match and match.status == "final" %}
-
-<div class="card mb-4">
-<div class="card-body">
-
-<h5 class="mb-3">⭐ Leave Feedback</h5>
-
-<form method="POST" action="/give_feedback/{{ match.id }}">
-
-<div class="mb-3">
-<label class="form-label">Rating</label>
-
-<select name="rating" class="form-control" required>
-<option value="">Select Rating</option>
-<option value="1">1 ⭐</option>
-<option value="2">2 ⭐⭐</option>
-<option value="3">3 ⭐⭐⭐</option>
-<option value="4">4 ⭐⭐⭐⭐</option>
-<option value="5">5 ⭐⭐⭐⭐⭐</option>
-</select>
-</div>
-
-<div class="mb-3">
-<label class="form-label">Comment</label>
-<textarea name="comment" class="form-control" rows="3" required></textarea>
-</div>
-
-<button class="btn btn-warning">Submit Feedback</button>
-
-</form>
-
-</div>
-</div>
-
-{% endif %}
-
-
-
-</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

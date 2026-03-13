@@ -1,31 +1,208 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Match Details</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project GURU – Match Details</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --aston-navy: #002d54;
+            --aston-red: #e4003a;
+            --aston-grey: #f4f4f4;
+            --aston-dark-grey: #333333;
+        }
+
+        body {
+            background-color: var(--aston-grey);
+            font-family: 'Roboto', Arial, sans-serif;
+            color: var(--aston-dark-grey);
+        }
+
+        /* --- HEADER --- */
+        .admin-header {
+            background-color: var(--aston-navy);
+            color: white;
+            padding: 25px 0;
+            border-bottom: 5px solid var(--aston-red);
+            margin-bottom: 40px;
+        }
+
+        .admin-header h2 {
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        /* --- DETAILS CARD --- */
+        .details-card {
+            background: white;
+            border: none;
+            border-radius: 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 40px;
+            margin-bottom: 50px;
+        }
+
+        .section-title {
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 20px;
+            background: var(--aston-red);
+            margin-right: 12px;
+        }
+
+        /* --- DATA PRESENTATION --- */
+        .info-group {
+            margin-bottom: 25px;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            color: var(--aston-navy);
+            font-weight: 700;
+        }
+
+        .score-display {
+            background-color: var(--aston-navy);
+            color: white;
+            display: inline-block;
+            padding: 10px 25px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+
+        .reason-box {
+            background-color: #f8fafc;
+            border-left: 4px solid var(--aston-navy);
+            padding: 20px;
+            font-size: 0.95rem;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .status-badge {
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 8px 12px;
+        }
+
+        /* --- BUTTONS --- */
+        .btn-aston-outline {
+            border: 2px solid var(--aston-navy);
+            color: var(--aston-navy);
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 10px 30px;
+            transition: 0.3s;
+        }
+
+        .btn-aston-outline:hover {
+            background-color: var(--aston-navy);
+            color: white;
+        }
+    </style>
 </head>
-<body class="container mt-5">
 
-<h2>Match Details</h2>
+<body>
 
-<hr>
+<header class="admin-header">
+    <div class="container">
+        <h2>Match Analytical Details</h2>
+    </div>
+</header>
 
-<p><strong>Mentor:</strong> {{ match.mentor_email }}</p>
-<p><strong>Mentee:</strong> {{ match.mentee_email }}</p>
+<div class="container">
+    <div class="details-card">
+        
+        <div class="row mb-5">
+            <div class="col-md-6 info-group">
+                <span class="info-label">Assigned Mentor</span>
+                <p class="info-value">{{ match.mentor_email }}</p>
+            </div>
+            <div class="col-md-6 info-group">
+                <span class="info-label">Assigned Mentee</span>
+                <p class="info-value">{{ match.mentee_email }}</p>
+            </div>
+        </div>
 
-<p><strong>Total Score:</strong> {{ match.score }}/10</p>
+        <hr class="mb-5">
 
-<h4>Score Breakdown</h4>
-<p>{{ match.reason }}</p>
+        <div class="row mb-5">
+            <div class="col-md-4">
+                <h4 class="section-title">Compatibility Score</h4>
+                <div class="score-display">
+                    {{ match.score }} <small class="fw-normal">/ 10</small>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <h4 class="section-title">Algorithmic Breakdown</h4>
+                <div class="reason-box shadow-sm">
+                    <i class="bi bi-info-circle-fill me-2 text-primary"></i>
+                    {{ match.reason }}
+                </div>
+            </div>
+        </div>
 
-<hr>
+        <hr class="mb-5">
 
-<h4>Status</h4>
-<p>Main Status: {{ match.status }}</p>
-<p>Mentor Response: {{ match.mentor_response }}</p>
-<p>Mentee Response: {{ match.mentee_response }}</p>
+        <h4 class="section-title">Confirmation Status</h4>
+        <div class="row mt-4">
+            <div class="col-md-4 mb-3">
+                <span class="info-label">Lifecycle Status</span>
+                <span class="badge status-badge bg-primary mt-1">{{ match.status }}</span>
+            </div>
+            <div class="col-md-4 mb-3">
+                <span class="info-label">Mentor Acceptance</span>
+                <span class="badge status-badge {% if match.mentor_response|lower == 'accepted' %}bg-success{% else %}bg-secondary{% endif %} mt-1">
+                    {{ match.mentor_response }}
+                </span>
+            </div>
+            <div class="col-md-4 mb-3">
+                <span class="info-label">Mentee Acceptance</span>
+                <span class="badge status-badge {% if match.mentee_response|lower == 'accepted' %}bg-success{% else %}bg-secondary{% endif %} mt-1">
+                    {{ match.mentee_response }}
+                </span>
+            </div>
+        </div>
 
-<a href="/admin" class="btn btn-secondary mt-3">Back to Admin</a>
+        <div class="text-center mt-5">
+            <a href="/admin" class="btn btn-aston-outline">
+                <i class="bi bi-arrow-left me-2"></i> Return to Admin Panel
+            </a>
+        </div>
 
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

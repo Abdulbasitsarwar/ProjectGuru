@@ -1,362 +1,366 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project GURU | Admin Dashboard</title>
 
-<title>Project GURU | Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --aston-navy: #002d54;
+            --aston-red: #e4003a;
+            --aston-grey: #f4f4f4;
+            --aston-dark-grey: #333333;
+        }
 
-<style>
+        body {
+            background-color: var(--aston-grey);
+            font-family: 'Roboto', Arial, sans-serif;
+            color: var(--aston-dark-grey);
+        }
 
-body{
-background:#f7f3fb;
-font-family:Arial, Helvetica, sans-serif;
-}
+        /* --- HEADER --- */
+        .admin-header {
+            background-color: var(--aston-navy);
+            color: white;
+            padding: 30px 0;
+            border-bottom: 5px solid var(--aston-red);
+            margin-bottom: 40px;
+        }
 
-.admin-header{
-background:linear-gradient(135deg,#4b0082,#6f2da8);
-color:white;
-padding:20px 30px;
-margin-bottom:30px;
-}
+        .admin-header h2 {
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+        }
 
-.stat-card{
-border:none;
-border-radius:10px;
-box-shadow:0 5px 15px rgba(0,0,0,0.1);
-}
+        /* --- STAT CARDS --- */
+        .stat-card {
+            border: none;
+            border-radius: 0;
+            border-left: 4px solid var(--aston-navy);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
 
-.table thead{
-background:#6f2da8;
-color:white;
-}
+        .stat-card h6 {
+            color: #666;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
 
-.section-title{
-margin-top:40px;
-margin-bottom:20px;
-font-weight:600;
-}
+        .stat-card h3 {
+            color: var(--aston-navy);
+            font-weight: 700;
+            margin: 0;
+        }
 
-.btn-purple{
-background:#6f2da8;
-color:white;
-border:none;
-}
+        /* --- TABLES --- */
+        .section-container {
+            background: white;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            margin-bottom: 40px;
+        }
 
-.btn-purple:hover{
-background:#4b0082;
-}
+        .section-title {
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+        }
 
-</style>
+        .section-title::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 20px;
+            background: var(--aston-red);
+            margin-right: 12px;
+        }
 
+        .table {
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        .table thead {
+            background-color: var(--aston-navy);
+            color: white;
+        }
+
+        .table thead th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            padding: 12px;
+            border: none;
+        }
+
+        /* --- BUTTONS & BADGES --- */
+        .btn-aston-red {
+            background-color: var(--aston-red);
+            color: white;
+            border: none;
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            padding: 8px 20px;
+        }
+
+        .btn-aston-red:hover {
+            background-color: #b3002d;
+            color: white;
+        }
+
+        .btn-aston-navy {
+            background-color: var(--aston-navy);
+            color: white;
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+
+        .badge {
+            border-radius: 0;
+            font-weight: 600;
+            padding: 6px 10px;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+
+        .bg-pending {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+        }
+
+        /* --- MODALS --- */
+        .modal-content {
+            border-radius: 0;
+            border-top: 5px solid var(--aston-red);
+        }
+
+        .modal-header h5 {
+            color: var(--aston-navy);
+            font-weight: 700;
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="admin-header">
-<h2>Project GURU Administration</h2>
-<p class="mb-0">Aston University Mentoring Platform</p>
-</div>
+<header class="admin-header">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <h2>Project GURU Administration</h2>
+            <p class="mb-0 opacity-75 small">Aston University Mentoring Platform Management</p>
+        </div>
+        <a href="/dashboard" class="btn btn-outline-light btn-sm rounded-0 fw-bold">
+            <i class="bi bi-arrow-left me-1"></i> BACK TO DASHBOARD
+        </a>
+    </div>
+</header>
 
 <div class="container">
 
-<!-- ================= STATS ================= -->
+    <div class="row mb-5">
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card p-4">
+                <h6>Total Users</h6>
+                <h3>{{ total_users }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card p-4" style="border-left-color: #f59e0b;">
+                <h6>Pending Approval</h6>
+                <h3>{{ pending_users }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card p-4" style="border-left-color: #10b981;">
+                <h6>Approved Users</h6>
+                <h3>{{ approved_users }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card p-4" style="border-left-color: var(--aston-red);">
+                <h6>Match Rate</h6>
+                <h3>{{ success_rate }}%</h3>
+            </div>
+        </div>
+    </div>
 
-<div class="row mb-4">
+    <div class="section-container">
+        <h4 class="section-title">User Management</h4>
+        <div class="table-responsive">
+            <table class="table table-hover border">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User Email</th>
+                        <th>Platform Role</th>
+                        <th>University Level</th>
+                        <th>Account Status</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="{% if user.status|lower == 'pending' %}bg-pending{% endif %}">
+                        <td class="fw-bold text-muted">{{ user.id }}</td>
+                        <td>
+                            <a href="/user_profile/{{ user.id }}" class="text-decoration-none fw-bold" style="color: var(--aston-navy);">
+                                {{ user.email }}
+                            </a>
+                        </td>
+                        <td><span class="badge bg-secondary">{{ user.role }}</span></td>
+                        <td class="text-capitalize">{{ user.level|replace('_', ' ') }}</td>
+                        <td>
+                            {% if user.status|lower == "accepted" %}
+                                <span class="badge bg-success">Active</span>
+                            {% elif user.status|lower == "pending" %}
+                                <span class="badge bg-warning text-dark">Awaiting Approval</span>
+                            {% else %}
+                                <span class="badge bg-dark">{{ user.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group">
+                                {% if user.status|lower == "pending" %}
+                                <a href="/approve_user/{{ user.id }}" class="btn btn-success btn-sm rounded-0 fw-bold">APPROVE</a>
+                                {% endif %}
+                                <a href="/remove_user/{{ user.id }}" class="btn btn-outline-danger btn-sm rounded-0 fw-bold" onclick="return confirm('Permanently remove this user?');">REMOVE</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-<div class="col-md-3">
-<div class="card stat-card text-center p-3">
-<h6>Total Users</h6>
-<h3>{{ total_users }}</h3>
+    <div class="section-container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="section-title mb-0">Suggested Pairings</h4>
+            <a href="/generate_matches" class="btn btn-aston-red">
+                <i class="bi bi-gear-fill me-1"></i> RUN MATCHING ENGINE
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover border">
+                <thead>
+                    <tr>
+                        <th>Mentor</th>
+                        <th>Mentee</th>
+                        <th class="text-center">Score</th>
+                        <th class="text-center">Stage</th>
+                        <th class="text-center">Mentor Status</th>
+                        <th class="text-center">Mentee Status</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in matches %}
+                    <tr>
+                        <td class="small fw-bold">{{ m.mentor_email }}</td>
+                        <td class="small fw-bold">{{ m.mentee_email }}</td>
+                        <td class="text-center">
+                            <a href="/match_details/{{ m.id }}" class="btn btn-aston-navy btn-sm px-3">
+                                {{ m.score }}/10
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            {% if m.status == "final" %}
+                                <span class="badge bg-success">Confirmed</span>
+                            {% elif m.status == "approved" %}
+                                <span class="badge bg-primary">Admin Approved</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark border">{{ m.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if m.mentor_response|lower == "accepted" %}
+                                <button class="btn btn-link btn-sm text-success p-0 fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#mentorFeedback{{ m.id }}">ACCEPTED <i class="bi bi-chat-dots ms-1"></i></button>
+                            {% elif m.mentor_response|lower == "declined" %}
+                                <span class="text-danger small fw-bold">DECLINED</span>
+                            {% else %}
+                                <span class="text-muted small italic">Pending...</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if m.mentee_response|lower == "accepted" %}
+                                <button class="btn btn-link btn-sm text-success p-0 fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#menteeFeedback{{ m.id }}">ACCEPTED <i class="bi bi-chat-dots ms-1"></i></button>
+                            {% elif m.mentee_response|lower == "declined" %}
+                                <span class="text-danger small fw-bold">DECLINED</span>
+                            {% else %}
+                                <span class="text-muted small italic">Pending...</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if m.status == "pending" %}
+                                <a href="/approve_match/{{ m.id }}" class="btn btn-success btn-sm rounded-0">CONFIRM</a>
+                                <a href="/cancel_match/{{ m.id }}" class="btn btn-danger btn-sm rounded-0" onclick="return confirm('Cancel suggestion?');">VOID</a>
+                            {% elif m.status == "approved" %}
+                                <span class="text-muted small">Awaiting Users</span>
+                            {% elif m.status == "final" %}
+                                <a href="/cancel_match/{{ m.id }}" class="btn btn-outline-danger btn-sm rounded-0">TERMINATE</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
-</div>
-
-<div class="col-md-3">
-<div class="card stat-card text-center p-3">
-<h6>Pending Users</h6>
-<h3>{{ pending_users }}</h3>
-</div>
-</div>
-
-<div class="col-md-3">
-<div class="card stat-card text-center p-3">
-<h6>Accepted Users</h6>
-<h3>{{ approved_users }}</h3>
-</div>
-</div>
-
-<div class="col-md-3">
-<div class="card stat-card text-center p-3">
-<h6>Match Success Rate</h6>
-<h3>{{ success_rate }}%</h3>
-</div>
-</div>
-
-</div>
-
-
-<!-- ================= USERS ================= -->
-
-<h4 class="section-title">Users</h4>
-
-<table class="table table-bordered table-striped">
-
-<thead>
-<tr>
-<th>ID</th>
-<th>Email</th>
-<th>Role</th>
-<th>Level</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-</thead>
-
-<tbody>
-
-{% for user in users %}
-
-<tr style="{% if user.status and user.status|lower == 'pending' %}background-color:#fffbeb;border-left:4px solid #f59e0b;{% endif %}">
-
-<td>{{ user.id }}</td>
-
-<td>
-<a href="/user_profile/{{ user.id }}">
-<strong>{{ user.email }}</strong>
-</a>
-</td>
-
-<td>
-<span class="badge bg-info">
-{{ user.role }}
-</span>
-</td>
-
-<td>{{ user.level }}</td>
-
-<td>
-
-{% if user.status and user.status|lower == "accepted" %}
-<span class="badge bg-success">Accepted</span>
-
-{% elif user.status and user.status|lower == "pending" %}
-<span class="badge bg-warning text-dark">Pending Approval</span>
-
-{% else %}
-<span class="badge bg-secondary">{{ user.status }}</span>
-
-{% endif %}
-
-</td>
-
-<td>
-
-<div class="btn-group" role="group">
-
-{% if user.status and user.status|lower == "pending" %}
-<a href="/approve_user/{{ user.id }}" class="btn btn-success btn-sm">
-Approve
-</a>
-{% endif %}
-
-<a href="/remove_user/{{ user.id }}"
-class="btn btn-outline-danger btn-sm"
-onclick="return confirm('Remove this user?');">
-Remove
-</a>
-
-</div>
-
-</td>
-
-</tr>
-
-{% endfor %}
-
-</tbody>
-</table>
-
-
-<!-- ================= MATCHES ================= -->
-
-<h4 class="section-title">Suggested Matches</h4>
-
-<a href="/generate_matches" class="btn btn-purple mb-3">
-Generate Matches
-</a>
-
-<table class="table table-bordered table-striped">
-
-<thead>
-<tr>
-<th>Mentor</th>
-<th>Mentee</th>
-<th>Score</th>
-<th>Status</th>
-<th>Mentor Response</th>
-<th>Mentee Response</th>
-<th>Action</th>
-</tr>
-</thead>
-
-<tbody>
 
 {% for m in matches %}
-
-<tr>
-
-<td>
-<a href="/user_profile/{{ m.mentor_id }}">
-{{ m.mentor_email }}
-</a>
-</td>
-
-<td>
-<a href="/user_profile/{{ m.mentee_id }}">
-{{ m.mentee_email }}
-</a>
-</td>
-
-<td class="text-center">
-<a href="/match_details/{{ m.id }}" class="btn btn-outline-primary btn-sm">
-{{ m.score }}
-</a>
-</td>
-
-<td class="text-center">
-
-{% if m.status == "final" %}
-<span class="badge bg-success">Final</span>
-
-{% elif m.status == "approved" %}
-<span class="badge bg-primary">Approved</span>
-
-{% else %}
-<span class="badge bg-secondary">{{ m.status }}</span>
-
-{% endif %}
-
-</td>
-
-<td class="text-center">
-
-{% if m.mentor_response and m.mentor_response|lower == "accepted" %}
-
-<button class="btn btn-success btn-sm"
-data-bs-toggle="modal"
-data-bs-target="#mentorFeedback{{ m.id }}">
-Accepted
-</button>
-
-{% elif m.mentor_response and m.mentor_response|lower == "declined" %}
-
-<span class="badge bg-danger">Declined</span>
-
-{% else %}
-
-<span class="badge bg-warning">Pending</span>
-
-{% endif %}
-
-</td>
-
-<td class="text-center">
-
-{% if m.mentee_response and m.mentee_response|lower == "accepted" %}
-
-<button class="btn btn-success btn-sm"
-data-bs-toggle="modal"
-data-bs-target="#menteeFeedback{{ m.id }}">
-Accepted
-</button>
-
-{% elif m.mentee_response and m.mentee_response|lower == "declined" %}
-
-<span class="badge bg-danger">Declined</span>
-
-{% else %}
-
-<span class="badge bg-warning">Pending</span>
-
-{% endif %}
-
-</td>
-
-<td class="text-center">
-
-{% if m.status == "pending" %}
-
-<a href="/approve_match/{{ m.id }}"
-class="btn btn-success btn-sm">
-Confirm
-</a>
-
-<a href="/cancel_match/{{ m.id }}"
-class="btn btn-danger btn-sm"
-onclick="return confirm('Cancel this match?');">
-Cancel
-</a>
-
-{% elif m.status == "approved" %}
-
-<span class="text-muted">Waiting for users</span>
-
-{% elif m.status == "final" %}
-
-<span class="badge bg-success">Match Completed</span>
-
-<a href="/cancel_match/{{ m.id }}"
-class="btn btn-danger btn-sm ms-2">
-Cancel
-</a>
-
-{% endif %}
-
-</td>
-
-</tr>
-
-{% endfor %}
-
-</tbody>
-
-</table>
-
-</div>
-
-
-<!-- ================= FEEDBACK MODALS ================= -->
-
-{% for m in matches %}
-
 <div class="modal fade" id="mentorFeedback{{ m.id }}" tabindex="-1">
-<div class="modal-dialog">
-<div class="modal-content p-4">
-
-<h5>Mentor Feedback About Mentee</h5>
-
-<p>{{ m.mentor_feedback or "No feedback yet" }}</p>
-
-</div>
-</div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">Mentor Comments</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pb-4">
+                <p class="text-muted">{{ m.mentor_feedback or "The mentor has not left additional feedback yet." }}</p>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="menteeFeedback{{ m.id }}" tabindex="-1">
-<div class="modal-dialog">
-<div class="modal-content p-4">
-
-<h5>Mentee Feedback About Mentor</h5>
-
-<p>{{ m.mentee_feedback or "No feedback yet" }}</p>
-
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">Mentee Comments</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pb-4">
+                <p class="text-muted">{{ m.mentee_feedback or "The mentee has not left additional feedback yet." }}</p>
+            </div>
+        </div>
+    </div>
 </div>
-</div>
-</div>
-
 {% endfor %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 </html>

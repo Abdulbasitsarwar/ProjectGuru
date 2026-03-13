@@ -1,24 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>User Profile</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project GURU – User Profile</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --aston-navy: #002d54;
+            --aston-red: #e4003a;
+            --aston-grey: #f4f4f4;
+            --aston-dark-grey: #333333;
+        }
+
+        body {
+            background-color: var(--aston-grey);
+            font-family: 'Roboto', Arial, sans-serif;
+            color: var(--aston-dark-grey);
+        }
+
+        /* --- PROFILE CARD --- */
+        .profile-card {
+            background: white;
+            border: none;
+            border-radius: 0;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--aston-red);
+            margin-top: 50px;
+        }
+
+        .profile-header {
+            background-color: var(--aston-navy);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .profile-header h2 {
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        /* --- DATA PRESENTATION --- */
+        .info-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--aston-navy);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+            display: block;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            color: #555;
+        }
+
+        .badge-aston {
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 8px 12px;
+            background-color: var(--aston-navy);
+        }
+
+        /* --- BUTTONS --- */
+        .btn-aston-outline {
+            border: 2px solid var(--aston-navy);
+            color: var(--aston-navy);
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            transition: 0.3s;
+            padding: 10px 30px;
+        }
+
+        .btn-aston-outline:hover {
+            background-color: var(--aston-navy);
+            color: white;
+        }
+    </style>
 </head>
-<body class="container mt-5">
 
-<h2>User Profile</h2>
-<hr>
+<body>
 
-<p><strong>Email:</strong> {{ user.email }}</p>
-<p><strong>Role:</strong> {{ user.role }}</p>
-<p><strong>Level:</strong> {{ user.level }}</p>
-<p><strong>Experience:</strong> {{ user.experience }}</p>
-<p><strong>Domain:</strong> {{ user.domain }}</p>
-<p><strong>Availability:</strong> {{ user.availability }}</p>
-<p><strong>Location:</strong> {{ user.location }}</p>
-<p><strong>Support Areas:</strong> {{ user.help_areas }}</p>
+{% include "navbar.html" %}
 
-<a href="/admin" class="btn btn-secondary mt-3">Back</a>
+<div class="container d-flex justify-content-center">
+    <div class="profile-card col-lg-8">
+        
+        <div class="profile-header">
+            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/6/6b/Aston_University_logo.svg/512px-Aston_University_logo.svg.png" height="50" class="mb-3" alt="Aston Logo">
+            <h2>User Profile Details</h2>
+        </div>
 
+        <div class="card-body p-5">
+            <div class="row">
+                <div class="col-md-6">
+                    <span class="info-label">University Email</span>
+                    <p class="info-value fw-bold" style="color: var(--aston-navy);">{{ user.email }}</p>
+
+                    <span class="info-label">Platform Role</span>
+                    <p class="info-value"><span class="badge badge-aston">{{ user.role }}</span></p>
+
+                    <span class="info-label">Experience Level</span>
+                    <p class="info-value">{{ user.experience|replace('-', ' to ')|replace('+', ' or more') }} Years</p>
+
+                    <span class="info-label">Academic/Industry Domain</span>
+                    <p class="info-value text-capitalize">{{ user.domain|replace('_', ' ') }}</p>
+                </div>
+
+                <div class="col-md-6">
+                    <span class="info-label">University Position</span>
+                    <p class="info-value text-capitalize">{{ user.level|replace('_', ' ') }}</p>
+
+                    <span class="info-label">General Availability</span>
+                    <p class="info-value text-capitalize">{{ user.availability }}</p>
+
+                    <span class="info-label">Preferred Meeting Location</span>
+                    <p class="info-value text-capitalize">{{ user.location|replace('_', ' ') }}</p>
+
+                    <span class="info-label">Mentoring Support Areas</span>
+                    <p class="info-value text-capitalize">{{ user.help_areas|replace('_', ' ') }}</p>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <a href="/admin" class="btn btn-aston-outline">
+                    <i class="bi bi-arrow-left me-2"></i> Return to Admin Panel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

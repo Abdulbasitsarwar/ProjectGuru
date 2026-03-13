@@ -1,65 +1,152 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-<title>Settings</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project GURU – Settings</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-<style>
+    <style>
+        :root {
+            --aston-navy: #002d54;
+            --aston-red: #e4003a;
+            --aston-grey: #f4f4f4;
+            --aston-dark-grey: #333333;
+        }
 
-body{
-background:#F8FAFC;
-}
+        body {
+            background-color: var(--aston-grey);
+            font-family: 'Roboto', Arial, sans-serif;
+            color: var(--aston-dark-grey);
+        }
 
-/* Page title */
-h2{
-font-weight:700;
-}
+        /* --- PAGE TITLE --- */
+        h2 {
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+        }
 
-/* Card style upgrade */
-.card{
-border:none;
-border-radius:14px;
-box-shadow:0 4px 18px rgba(0,0,0,0.06);
-}
+        h2::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 28px;
+            background: var(--aston-red);
+            margin-right: 12px;
+        }
 
-</style>
+        /* --- SETTINGS CARDS --- */
+        .settings-card {
+            background: white;
+            border: none;
+            border-radius: 0; /* Square edges for institutional feel */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--aston-navy);
+            transition: transform 0.2s;
+        }
 
+        .settings-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .settings-card.danger-zone {
+            border-left-color: var(--aston-red);
+        }
+
+        .card-title {
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- BUTTONS --- */
+        .btn-aston-navy {
+            background-color: var(--aston-navy);
+            color: white;
+            border: none;
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 12px;
+            transition: 0.3s;
+        }
+
+        .btn-aston-navy:hover {
+            background-color: #001a33;
+            color: white;
+        }
+
+        .btn-aston-red {
+            background-color: var(--aston-red);
+            color: white;
+            border: none;
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 12px;
+            transition: 0.3s;
+        }
+
+        .btn-aston-red:hover {
+            background-color: #b3002d;
+            color: white;
+        }
+
+    </style>
 </head>
 
 <body>
 
 {% include "navbar.html" %}
 
-<!-- FULL WIDTH LAYOUT -->
-<div class="container-fluid mt-5 px-4">
+<div class="container mt-5">
+    
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <h2>Account Settings</h2>
+        <a href="/dashboard" class="btn btn-outline-secondary btn-sm rounded-0 fw-bold">
+            <i class="bi bi-arrow-left me-1"></i> BACK TO DASHBOARD
+        </a>
+    </div>
 
-<h2 class="mb-4">Settings</h2>
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card settings-card p-4 h-100">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-shield-lock-fill text-primary fs-3 me-3"></i>
+                    <h5 class="card-title mb-0">Security</h5>
+                </div>
+                <p class="text-muted small mb-4">Update your account password regularly to ensure your profile remains secure.</p>
+                <a href="/change_password" class="btn btn-aston-navy w-100">
+                    <i class="bi bi-key-fill me-2"></i> Change Password
+                </a>
+            </div>
+        </div>
 
-<!-- Change Password -->
-<div class="card p-4 mb-4">
-
-<h5 class="mb-3">Change Password</h5>
-
-<a href="/change_password" class="btn btn-primary w-100">
-Change Password
-</a>
+        <div class="col-md-6 mb-4">
+            <div class="card settings-card danger-zone p-4 h-100">
+                <div class="d-flex align-items-center mb-3">
+                    <i class="bi bi-exclamation-triangle-fill text-danger fs-3 me-3"></i>
+                    <h5 class="card-title mb-0 text-danger">Danger Zone</h5>
+                </div>
+                <p class="text-muted small mb-4">Permanently delete your mentoring profile and all associated match data. This action cannot be undone.</p>
+                <a href="/delete_account" class="btn btn-aston-red w-100" onclick="return confirm('Are you absolutely sure? This will permanently delete your account.');">
+                    <i class="bi bi-trash3-fill me-2"></i> Delete Account
+                </a>
+            </div>
+        </div>
+    </div>
 
 </div>
 
-<!-- Delete Account -->
-<div class="card p-4">
-
-<h5 class="text-danger mb-3">Delete Account</h5>
-
-<a href="/delete_account" class="btn btn-danger w-100">
-Delete Account
-</a>
-
-</div>
-
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

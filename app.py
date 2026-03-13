@@ -191,15 +191,13 @@ def questionnaire():
 @app.route("/dashboard")
 def dashboard():
 
-    # 🔐 Ensure user logged in
     if "user_id" not in session:
         return redirect("/login")
 
     conn = get_db()
 
     # -------------------------------------------------
-    # 🔴 CRITICAL FIX — Check if user still exists
-    # (handles admin deleting user while logged in)
+    # 🔐 Ensure user still exists
     # -------------------------------------------------
     user = conn.execute(
         "SELECT * FROM users WHERE id=?",
@@ -211,16 +209,40 @@ def dashboard():
         conn.close()
         return redirect("/login")
 
-    # -------------------------------------------------
-    # Get matches involving this user
-    # -------------------------------------------------
-    matches = conn.execute("""
-        SELECT * FROM matches
-        WHERE mentor_id=? OR mentee_id=?
-    """, (session["user_id"], session["user_id"])).fetchall()
+    user_id = session["user_id"]
 
     # -------------------------------------------------
-    # Find FINAL match only
+    # 🎯 Determine dashboard VIEW MODE
+    # -------------------------------------------------
+    view = request.args.get("view")
+
+    if user["role"] == "mentor":
+        view = "mentor"
+
+    elif user["role"] == "mentee":
+        view = "mentee"
+
+    elif user["role"] == "both":
+        if view not in ["mentor", "mentee"]:
+            view = "mentor"  # default
+
+    # -------------------------------------------------
+    # 🎯 Load matches based on VIEW
+    # -------------------------------------------------
+    if view == "mentor":
+        matches = conn.execute("""
+            SELECT * FROM matches
+            WHERE mentor_id=?
+        """, (user_id,)).fetchall()
+
+    else:  # mentee view
+        matches = conn.execute("""
+            SELECT * FROM matches
+            WHERE mentee_id=?
+        """, (user_id,)).fetchall()
+
+    # -------------------------------------------------
+    # 🔥 Find FINAL match for this view
     # -------------------------------------------------
     match = None
     for m in matches:
@@ -228,7 +250,7 @@ def dashboard():
             match = m
 
     # -------------------------------------------------
-    # Date filter
+    # 📅 Meeting system ONLY applies if final match exists
     # -------------------------------------------------
     selected_date = request.args.get("filter_date")
     if selected_date == "":
@@ -238,19 +260,13 @@ def dashboard():
     upcoming_meetings = []
     past_meetings = []
 
-    # -------------------------------------------------
-    # If user has a FINAL match → load meetings
-    # -------------------------------------------------
     if match:
 
-        # ---------- Get slots ----------
         if selected_date:
             slots = conn.execute("""
                 SELECT *
                 FROM meeting_slots
-                WHERE match_id=?
-                AND date=?
-                AND status!='unavailable'
+                WHERE match_id=? AND date=? AND status!='unavailable'
                 ORDER BY date, start_time
             """, (match["id"], selected_date)).fetchall()
 
@@ -258,12 +274,10 @@ def dashboard():
             slots = conn.execute("""
                 SELECT *
                 FROM meeting_slots
-                WHERE match_id=?
-                AND status!='unavailable'
+                WHERE match_id=? AND status!='unavailable'
                 ORDER BY date, start_time
             """, (match["id"],)).fetchall()
 
-        # ---------- Classify slots ----------
         now = datetime.now()
         filtered_slots = []
 
@@ -274,41 +288,37 @@ def dashboard():
                 "%Y-%m-%d %H:%M"
             )
 
-            # FUTURE AVAILABLE
             if slot["status"] == "available":
                 if slot_dt > now:
                     filtered_slots.append(slot)
 
-            # BOOKED
             elif slot["status"] == "booked":
                 if slot_dt > now:
                     upcoming_meetings.append(slot)
                 else:
                     past_meetings.append(slot)
 
-            # COMPLETED / MISSED
             elif slot["status"] in ["completed", "missed"]:
                 past_meetings.append(slot)
-
-            # CANCELLED → ignored
 
         slots = filtered_slots
 
     # -------------------------------------------------
-    # Notifications (NO LIMIT — as you requested)
+    # 🔔 Notifications
     # -------------------------------------------------
     notifications = conn.execute("""
         SELECT *
         FROM notifications
         WHERE user_id=?
         ORDER BY created_at DESC
-    """, (session["user_id"],)).fetchall()
+    """, (user_id,)).fetchall()
 
     conn.close()
 
     return render_template(
         "dashboard.html",
         user=user,
+        view=view,
         matches=matches,
         match=match,
         slots=slots,
@@ -316,7 +326,7 @@ def dashboard():
         past_meetings=past_meetings,
         notifications=notifications,
         current_date=date.today(),
-        user_id=session["user_id"]
+        user_id=user_id
     )
 
 @app.route("/clear_notifications")

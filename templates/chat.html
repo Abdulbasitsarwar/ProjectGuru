@@ -42,7 +42,7 @@ border:1px solid #e2e8f0;
 .message-self{
 background:#6f2da8 !important;
 color:white !important;
-border-radius:18px 18px 0 18px !important;   /* Messenger style */
+border-radius:18px 18px 0 18px !important;   /* Messenger style */
 padding:12px 16px !important;
 max-width:65%;
 box-shadow:0 2px 4px rgba(111,45,168,0.2);
@@ -172,8 +172,8 @@ Send
 
 // Scroll chat to bottom
 function scrollBottom(){
-    let chat = document.getElementById("chat-box")
-    chat.scrollTop = chat.scrollHeight
+    let chat = document.getElementById("chat-box")
+    chat.scrollTop = chat.scrollHeight
 }
 
 scrollBottom()
@@ -181,20 +181,20 @@ scrollBottom()
 // Auto refresh chat
 function loadMessages(){
 
-    fetch(window.location.href)
-    .then(response => response.text())
-    .then(html => {
+    fetch(window.location.href)
+    .then(response => response.text())
+    .then(html => {
 
-        let parser = new DOMParser()
-        let doc = parser.parseFromString(html, "text/html")
+        let parser = new DOMParser()
+        let doc = parser.parseFromString(html, "text/html")
 
-        let newChat = doc.querySelector("#chat-box").innerHTML
+        let newChat = doc.querySelector("#chat-box").innerHTML
 
-        document.querySelector("#chat-box").innerHTML = newChat
+        document.querySelector("#chat-box").innerHTML = newChat
 
-        scrollBottom()
+        scrollBottom()
 
-    })
+    })
 }
 
 setInterval(loadMessages, 2000)

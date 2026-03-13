@@ -1,142 +1,193 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>My Match</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project GURU – My Match</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --aston-navy: #002d54;
+            --aston-red: #e4003a;
+            --aston-grey: #f4f4f4;
+            --aston-dark-grey: #333333;
+        }
+
+        body {
+            background-color: var(--aston-grey);
+            font-family: 'Roboto', Arial, sans-serif;
+            color: var(--aston-dark-grey);
+        }
+
+        /* --- PAGE TITLE --- */
+        h2 {
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+        }
+
+        h2::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 28px;
+            background: var(--aston-red);
+            margin-right: 12px;
+        }
+
+        /* --- CARDS & ALERTS --- */
+        .match-card {
+            background: white;
+            border: none;
+            border-radius: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--aston-navy);
+        }
+
+        .alert {
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            border: none;
+            border-left: 5px solid;
+        }
+
+        .alert-info { border-left-color: #0dcaf0; background-color: #e1f5fe; color: #01579b; }
+        .alert-danger { border-left-color: var(--aston-red); background-color: #fce4ec; color: #880e4f; }
+        .alert-warning { border-left-color: #ffc107; background-color: #fff9c4; color: #856404; }
+        .alert-success { border-left-color: #198754; background-color: #e8f5e9; color: #1b5e20; }
+
+        /* --- TYPOGRAPHY --- */
+        h5 {
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            display: block;
+        }
+
+        /* --- BUTTONS --- */
+        .btn {
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            padding: 10px 25px;
+        }
+
+        .btn-aston-red { background-color: var(--aston-red); color: white; border: none; }
+        .btn-aston-red:hover { background-color: #b3002d; color: white; }
+
+        .btn-aston-navy { background-color: var(--aston-navy); color: white; border: none; }
+        .btn-aston-navy:hover { background-color: #001a33; color: white; }
+    </style>
 </head>
 
 <body>
 
 {% include "navbar.html" %}
 
-<div class="container mt-5">
+<div class="container mt-5 mb-5">
+    <h2 class="mb-5">My Mentoring Match</h2>
 
-<h2 class="mb-4">My Match</h2>
+    {% if match %}
 
-{% if match %}
+        {% if match.status == "approved" %}
+            {% set my_response = match.mentor_response if user_id == match.mentor_id else match.mentee_response %}
 
-<!-- ========================================================= -->
-<!-- ================= APPROVED MATCH ========================= -->
-<!-- ========================================================= -->
+            {% if my_response == "accepted" %}
+                <div class="alert alert-info shadow-sm mb-4">
+                    <i class="bi bi-info-circle-fill me-2"></i> You have accepted this match. Waiting for the other participant to confirm.
+                </div>
+            {% elif my_response == "declined" %}
+                <div class="alert alert-danger shadow-sm mb-4">
+                    <i class="bi bi-x-circle-fill me-2"></i> You declined this match.
+                </div>
+            {% else %}
+                <div class="alert alert-warning shadow-sm mb-4">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> A new mentoring match has been proposed. Please review and respond.
+                </div>
 
-{% if match.status == "approved" %}
+                <div class="card match-card p-4">
+                    <div class="row">
+                        <div class="col-md-6 mb-4 mb-md-0">
+                            <h5><i class="bi bi-person-badge me-2"></i> Mentor Details</h5>
+                            <span class="info-label">University Email</span>
+                            <p class="fw-bold">{{ mentor.email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-mortarboard me-2"></i> Mentee Details</h5>
+                            <span class="info-label">University Email</span>
+                            <p class="fw-bold">{{ mentee.email }}</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="d-flex gap-3 mt-2">
+                        <a href="/accept_match/{{match.id}}" class="btn btn-success">ACCEPT MATCH</a>
+                        <a href="/decline_match/{{match.id}}" class="btn btn-aston-red">DECLINE MATCH</a>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
 
-    {% set my_response =
-        match.mentor_response if user_id == match.mentor_id
-        else match.mentee_response
-    %}
+        {% if match.status == "final" %}
+            <div class="alert alert-success shadow-sm mb-4">
+                <i class="bi bi-check-all me-2"></i> Your mentoring match is confirmed.
+            </div>
 
-    {% set other_response =
-        match.mentee_response if user_id == match.mentor_id
-        else match.mentor_response
-    %}
+            <div class="card match-card p-4">
+                <div class="row">
+                    <div class="col-md-6 mb-4 mb-md-0">
+                        <h5><i class="bi bi-person-badge-fill me-2"></i> Mentor</h5>
+                        <span class="info-label">Official Email</span>
+                        <p class="fw-bold" style="color: var(--aston-navy);">{{ mentor.email }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5><i class="bi bi-mortarboard-fill me-2"></i> Mentee</h5>
+                        <span class="info-label">Official Email</span>
+                        <p class="fw-bold" style="color: var(--aston-navy);">{{ mentee.email }}</p>
+                    </div>
+                </div>
+                <div class="mt-4 text-center">
+                    <a href="/chat/{{match.id}}" class="btn btn-aston-navy w-100 py-3">
+                        <i class="bi bi-chat-fill me-2"></i> ENTER MENTORING CHAT
+                    </a>
+                </div>
+            </div>
+        {% endif %}
 
-    <!-- ✅ YOU ALREADY ACCEPTED -->
-    {% if my_response == "accepted" %}
+        {% if match.status == "declined" %}
+            <div class="alert alert-danger shadow-sm mb-4">
+                <i class="bi bi-x-square-fill me-2"></i> This match has been declined.
+            </div>
+        {% endif %}
 
-        <div class="alert alert-info">
-            ✅ You have accepted this match.  
-            Waiting for the other participant to confirm.
-        </div>
-
-    <!-- ❌ YOU DECLINED -->
-    {% elif my_response == "declined" %}
-
-        <div class="alert alert-danger">
-            ❌ You declined this match.
-        </div>
-
-    <!-- 🟡 YOU HAVEN'T RESPONDED -->
     {% else %}
-
-        <div class="alert alert-warning">
-            A new mentoring match has been proposed. Please review and respond.
+        <div class="text-center py-5">
+            <i class="bi bi-person-x text-muted" style="font-size: 4rem;"></i>
+            <p class="text-muted mt-3 fw-bold">You do not have a match currently.</p>
+            <a href="/dashboard" class="btn btn-aston-outline mt-2 border-2 fw-bold" style="border: 2px solid var(--aston-navy); color: var(--aston-navy);">RETURN TO DASHBOARD</a>
         </div>
-
-        <div class="card shadow mb-3">
-        <div class="card-body">
-
-        <h5>Mentor</h5>
-        <p><strong>Email:</strong> {{ mentor.email }}</p>
-
-        <h5 class="mt-3">Mentee</h5>
-        <p><strong>Email:</strong> {{ mentee.email }}</p>
-
-        <hr>
-
-        <div class="d-flex gap-3">
-
-        <a href="/accept_match/{{match.id}}" class="btn btn-success">
-        Accept Match
-        </a>
-
-        <a href="/decline_match/{{match.id}}" class="btn btn-danger">
-        Decline Match
-        </a>
-
-        </div>
-
-        </div>
-        </div>
-
     {% endif %}
-
-{% endif %}
-
-
-
-<!-- ========================================================= -->
-<!-- ================= FINAL MATCH ============================ -->
-<!-- ========================================================= -->
-
-{% if match.status == "final" %}
-
-<div class="alert alert-success">
-🎉 Your mentoring match is confirmed.
 </div>
 
-<div class="card shadow">
-<div class="card-body">
-
-<h5>Mentor</h5>
-<p><strong>Email:</strong> {{ mentor.email }}</p>
-
-<h5 class="mt-3">Mentee</h5>
-<p><strong>Email:</strong> {{ mentee.email }}</p>
-
-<a href="/chat/{{match.id}}" class="btn btn-primary mt-3">
-Go to Chat
-</a>
-
-</div>
-</div>
-
-{% endif %}
-
-
-
-<!-- ========================================================= -->
-<!-- ================= DECLINED =============================== -->
-<!-- ========================================================= -->
-
-{% if match.status == "declined" %}
-
-<div class="alert alert-danger">
-❌ This match has been declined.
-</div>
-
-{% endif %}
-
-
-
-{% else %}
-
-<p>You do not have a match currently.</p>
-
-{% endif %}
-
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

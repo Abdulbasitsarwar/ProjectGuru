@@ -1,128 +1,178 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project GURU – Sign Up</title>
 
-<title>Project GURU – Sign Up</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --aston-navy: #002d54;
+            --aston-red: #e4003a;
+            --aston-grey: #f4f4f4;
+        }
 
-<style>
+        body {
+            background-color: var(--aston-grey);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Roboto', Arial, sans-serif;
+            /* Subtle background pattern to match institutional feel */
+            background-image: radial-gradient(var(--aston-navy) 0.5px, transparent 0.5px);
+            background-size: 30px 30px;
+        }
 
-body{
-background:linear-gradient(135deg,#4b0082,#6f2da8);
-height:100vh;
-display:flex;
-align-items:center;
-justify-content:center;
-font-family:Arial, Helvetica, sans-serif;
-}
+        .signup-card {
+            background: white;
+            padding: 40px;
+            border-radius: 0; /* Square edges for a formal look */
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            border-top: 5px solid var(--aston-red); /* Characteristic red border */
+        }
 
-.signup-card{
-background:white;
-padding:40px;
-border-radius:10px;
-width:420px;
-box-shadow:0 10px 30px rgba(0,0,0,0.2);
-}
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-.logo{
-text-align:center;
-margin-bottom:20px;
-}
+        .logo h3 {
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
 
-.logo h3{
-color:#4b0082;
-font-weight:700;
-}
+        .btn-aston {
+            background: var(--aston-red);
+            color: white;
+            border: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 12px;
+            transition: 0.3s;
+            border-radius: 0;
+        }
 
-.btn-purple{
-background:#6f2da8;
-color:white;
-border:none;
-}
+        .btn-aston:hover {
+            background: #b3002d;
+            color: white;
+        }
 
-.btn-purple:hover{
-background:#4b0082;
-}
+        .form-control, .form-select {
+            margin-bottom: 15px;
+            border-radius: 0;
+            padding: 12px;
+            border: 1px solid #ced4da;
+        }
 
-.form-control{
-margin-bottom:15px;
-}
+        .form-control:focus, .form-select:focus {
+            border-color: var(--aston-navy);
+            box-shadow: none;
+        }
 
-.back-link{
-text-align:center;
-margin-top:15px;
-}
+        .form-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--aston-navy);
+            margin-bottom: 5px;
+        }
 
-</style>
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
 
+        .back-link a {
+            color: var(--aston-navy);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .back-link a:hover {
+            color: var(--aston-red);
+        }
+    </style>
 </head>
 
 <body>
 
 <div class="signup-card">
 
-<div class="logo">
+    <div class="logo">
+        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/6/6b/Aston_University_logo.svg/512px-Aston_University_logo.svg.png" height="60" alt="Aston Logo">
+        <h3>Project GURU</h3>
+        <p style="font-size:14px; color:gray; margin-top: 5px;">
+            Aston University Mentoring Scheme
+        </p>
+    </div>
 
-<h3>Project GURU</h3>
-<p style="font-size:14px;color:gray;">
-Aston University Mentoring Scheme
-</p>
+    <h4 class="text-center mb-4" style="color: var(--aston-navy); font-weight: 700;">Create Account</h4>
 
-</div>
+    <form method="POST">
 
-<h4 class="text-center mb-4">Create Account</h4>
+        <div>
+            <label class="form-label">University Email</label>
+            <input
+                type="email"
+                name="email"
+                class="form-control"
+                placeholder="e.g. j.doe@aston.ac.uk"
+                required
+            >
+        </div>
 
-<form method="POST">
+        <div>
+            <label class="form-label">Password</label>
+            <input
+                type="password"
+                name="password"
+                class="form-control"
+                placeholder="Create password"
+                required
+            >
+        </div>
 
-<input
-type="email"
-name="email"
-class="form-control"
-placeholder="University Email"
-required
->
+        <div>
+            <label class="form-label">Confirm Password</label>
+            <input
+                type="password"
+                name="confirm"
+                class="form-control"
+                placeholder="Repeat password"
+                required
+            >
+        </div>
 
-<input
-type="password"
-name="password"
-class="form-control"
-placeholder="Password"
-required
->
+        <div>
+            <label class="form-label">Platform Role</label>
+            <select name="role" class="form-select" required>
+                <option value="">Select your role</option>
+                <option value="mentor">Mentor</option>
+                <option value="mentee">Mentee</option>
+                <option value="both">Both</option>
+            </select>
+        </div>
 
-<input
-type="password"
-name="confirm"
-class="form-control"
-placeholder="Confirm Password"
-required
->
+        <button class="btn btn-aston w-100 mt-3" type="submit">
+            Create Account
+        </button>
 
-<select name="role" class="form-control" required>
+    </form>
 
-<option value="">Select your role</option>
-<option value="mentor">Mentor</option>
-<option value="mentee">Mentee</option>
-<option value="both">Both</option>
-
-</select>
-
-<button class="btn btn-purple w-100 mt-3" type="submit">
-Create Account
-</button>
-
-</form>
-
-<div class="back-link">
-
-<a href="/" style="color:#6f2da8;">← Back to Home</a>
-
-</div>
+    <div class="back-link">
+        <a href="/">← Return to Homepage</a>
+    </div>
 
 </div>
 
 </body>
-
 </html>
