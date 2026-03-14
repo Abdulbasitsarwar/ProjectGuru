@@ -1416,7 +1416,50 @@ def match_details(match_id):
     conn.close()
 
     return render_template("match_details.html", match=match)
+# ---------------- CHAT HOME ----------------
+@app.route("/chat")
+def chat_home():
 
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_db()
+    user_id = session["user_id"]
+
+    # 🔥 Get ACTIVE PROFILE (mentor or mentee)
+    profile = get_active_profile()
+
+    if not profile:
+        conn.close()
+        return redirect("/dashboard")
+
+    role = profile["role"]
+
+    # 🔎 Find FINAL match for this role
+    if role == "mentor":
+        match = conn.execute("""
+            SELECT id FROM matches
+            WHERE mentor_id=? AND status='final'
+        """, (user_id,)).fetchone()
+
+    else:
+        match = conn.execute("""
+            SELECT id FROM matches
+            WHERE mentee_id=? AND status='final'
+        """, (user_id,)).fetchone()
+
+    conn.close()
+
+    # ===============================
+    # ✔ If match exists → open chat
+    # ===============================
+    if match:
+        return redirect(f"/chat/{match['id']}")
+
+    # ===============================
+    # ❌ If NO match → show message
+    # ===============================
+    return render_template("no_chat.html")
 # ---------------- CHAT ----------------
 @app.route("/chat/<int:match_id>", methods=["GET", "POST"])
 def chat(match_id):

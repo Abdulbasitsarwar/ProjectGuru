@@ -1,0 +1,76 @@
+{% include "navbar.html" %}
+
+<style>
+    /* Consistent title styling with the red accent bar */
+    .empty-state-title {
+        color: var(--aston-navy);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: inline-flex;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .empty-state-title::before {
+        content: "";
+        display: inline-block;
+        width: 4px;
+        height: 24px;
+        background: var(--aston-red);
+        margin-right: 12px;
+    }
+
+    .status-card {
+        background: white;
+        padding: 60px 40px;
+        border-radius: 0; /* Square edges for branding */
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        border-top: 5px solid var(--aston-red);
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .status-icon {
+        font-size: 70px;
+        color: var(--aston-navy);
+        opacity: 0.15;
+        margin-bottom: 20px;
+    }
+
+    .btn-aston-navy {
+        background-color: var(--aston-navy);
+        color: white;
+        border-radius: 0;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 12px 30px;
+        border: none;
+        transition: 0.3s;
+    }
+
+    .btn-aston-navy:hover {
+        background-color: #001a33;
+        color: white;
+    }
+</style>
+
+<div class="container mt-5 text-center">
+    <h3 class="empty-state-title">Connection Status</h3>
+
+    <div class="status-card shadow-sm">
+        <div class="status-icon">
+            <i class="bi bi-person-exclamation"></i>
+        </div>
+
+        <h4 class="fw-bold" style="color: var(--aston-navy);">No Active Match Found</h4>
+        
+        <p class="text-muted px-lg-5 mb-4">
+            You do not currently have a confirmed mentoring match. Please visit the "My Match" section to review proposed pairings or check your current status.
+        </p>
+
+        <a href="/match" class="btn btn-aston-navy">
+            <i class="bi bi-arrow-right-circle me-2"></i> Go to My Match
+        </a>
+    </div>
+</div>
