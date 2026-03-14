@@ -94,13 +94,11 @@
 
 <body>
 
-{% include "navbar.html" %}
-
 <div class="container d-flex justify-content-center">
     <div class="profile-card col-lg-8">
         
         <div class="profile-header">
-            <img src="https://upload.wikimedia.org/wikipedia/en/thumb/6/6b/Aston_University_logo.svg/512px-Aston_University_logo.svg.png" height="50" class="mb-3" alt="Aston Logo">
+            <img src="{{ url_for('static', filename='aston_logo.png') }}" height="60" class="mb-3" alt="Aston Logo">
             <h2>User Profile Details</h2>
         </div>
 

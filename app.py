@@ -54,7 +54,6 @@ def home():
     return render_template("index.html")
 
 
-# ---------------- SIGNUP ----------------
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
 
@@ -65,13 +64,11 @@ def signup():
         confirm = request.form.get("confirm")
         role = request.form.get("role")
 
-        # Password check
         if password != confirm:
             return "Passwords do not match"
 
         conn = get_db()
 
-        # Check if email already exists
         existing = conn.execute(
             "SELECT id FROM users WHERE email=?",
             (email,)
@@ -79,55 +76,158 @@ def signup():
 
         if existing:
             conn.close()
-            return "Email already registered. Please login."
+            return "Email already registered"
 
-        # Insert new user
-        conn.execute(
-            """
+        # 🔥 Create USER ACCOUNT
+        conn.execute("""
             INSERT INTO users (email, password, role, status)
-            VALUES (?, ?, ?, ?)
-            """,
-            (email, password, role, "incomplete")
-        )
+            VALUES (?, ?, ?, 'incomplete')
+        """, (email, password, role))
 
-        conn.commit()
-
-        # Get user id
         user = conn.execute(
             "SELECT id FROM users WHERE email=?",
             (email,)
         ).fetchone()
 
-        session["user_id"] = user["id"]
+        user_id = user["id"]
+
+        # 🔥 CREATE PROFILES BASED ON ROLE
+        if role == "mentor":
+            conn.execute(
+                "INSERT INTO profiles (user_id, role) VALUES (?, 'mentor')",
+                (user_id,)
+            )
+
+        elif role == "mentee":
+            conn.execute(
+                "INSERT INTO profiles (user_id, role) VALUES (?, 'mentee')",
+                (user_id,)
+            )
+
+        elif role == "both":
+            conn.execute(
+                "INSERT INTO profiles (user_id, role) VALUES (?, 'mentor')",
+                (user_id,)
+            )
+            conn.execute(
+                "INSERT INTO profiles (user_id, role) VALUES (?, 'mentee')",
+                (user_id,)
+            )
+
+        conn.commit()
+
+        # 🔥 LOAD FIRST PROFILE IMMEDIATELY
+        profile = conn.execute("""
+            SELECT * FROM profiles
+            WHERE user_id=?
+            ORDER BY id
+            LIMIT 1
+        """, (user_id,)).fetchone()
+
+        # 🔥 SET SESSION
+        session["user_id"] = user_id
+        session["profile_id"] = profile["id"]
+        session["active_role"] = profile["role"]
 
         conn.close()
 
         return redirect("/questionnaire")
 
+    # 👉 GET request → show signup page
     return render_template("signup.html")
 
+@app.route("/switch_profile/<int:profile_id>")
+def switch_profile(profile_id):
 
-# ---------------- LOGIN ----------------
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_db()
+
+    profile = conn.execute("""
+        SELECT * FROM profiles
+        WHERE id=? AND user_id=?
+    """, (profile_id, session["user_id"])).fetchone()
+
+    conn.close()
+
+    if not profile:
+        return redirect("/dashboard")
+
+    session["profile_id"] = profile["id"]
+    session["active_role"] = profile["role"]
+
+    return redirect("/dashboard")
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
+
     if request.method == "POST":
+
         email = request.form.get("email")
         password = request.form.get("password")
 
         conn = get_db()
+
         user = conn.execute(
             "SELECT * FROM users WHERE email=? AND password=?",
             (email, password)
         ).fetchone()
-        conn.close()
 
         if not user:
+            conn.close()
             return "Invalid credentials"
 
         session["user_id"] = user["id"]
 
-        if user["status"] == "incomplete":
-            return redirect("/questionnaire")
+        # -------------------------------------------------
+        # 🔥 ENSURE USER HAS PROFILES
+        # -------------------------------------------------
+        profiles = conn.execute("""
+            SELECT * FROM profiles
+            WHERE user_id=?
+        """, (user["id"],)).fetchall()
+
+        if not profiles:
+
+            if user["role"] == "mentor":
+                conn.execute(
+                    "INSERT INTO profiles (user_id, role) VALUES (?, 'mentor')",
+                    (user["id"],)
+                )
+
+            elif user["role"] == "mentee":
+                conn.execute(
+                    "INSERT INTO profiles (user_id, role) VALUES (?, 'mentee')",
+                    (user["id"],)
+                )
+
+            elif user["role"] == "both":
+                conn.execute(
+                    "INSERT INTO profiles (user_id, role) VALUES (?, 'mentor')",
+                    (user["id"],)
+                )
+                conn.execute(
+                    "INSERT INTO profiles (user_id, role) VALUES (?, 'mentee')",
+                    (user["id"],)
+                )
+
+            conn.commit()
+
+            profiles = conn.execute("""
+                SELECT * FROM profiles
+                WHERE user_id=?
+            """, (user["id"],)).fetchall()
+
+        # -------------------------------------------------
+        # 🔥 LOAD FIRST PROFILE
+        # -------------------------------------------------
+        first_profile = profiles[0]
+
+        session["profile_id"] = first_profile["id"]
+        session["active_role"] = first_profile["role"]
+
+        conn.close()
 
         return redirect("/dashboard")
 
@@ -186,6 +286,26 @@ def questionnaire():
     conn.close()
     return render_template("questionnaire.html")
 
+# ============================================================
+# --------- ACTIVE PROFILE HELPER ----------------
+# Ensures user has selected a profile (mentor/mentee)
+# ============================================================
+
+def get_active_profile():
+
+    if "profile_id" not in session:
+        return None
+
+    conn = get_db()
+
+    profile = conn.execute("""
+        SELECT * FROM profiles
+        WHERE id=? AND user_id=?
+    """, (session["profile_id"], session["user_id"])).fetchone()
+
+    conn.close()
+
+    return profile
 
 # ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
@@ -196,9 +316,7 @@ def dashboard():
 
     conn = get_db()
 
-    # -------------------------------------------------
-    # 🔐 Ensure user still exists
-    # -------------------------------------------------
+    # Ensure user exists
     user = conn.execute(
         "SELECT * FROM users WHERE id=?",
         (session["user_id"],)
@@ -211,47 +329,44 @@ def dashboard():
 
     user_id = session["user_id"]
 
-    # -------------------------------------------------
-    # 🎯 Determine dashboard VIEW MODE
-    # -------------------------------------------------
-    view = request.args.get("view")
+    # =================================================
+    # 🔥 ACTIVE PROFILE (mentor OR mentee)
+    # =================================================
+    profile = get_active_profile()
 
-    if user["role"] == "mentor":
-        view = "mentor"
+    if not profile:
+        conn.close()
+        return "Please select a profile"
 
-    elif user["role"] == "mentee":
-        view = "mentee"
+    role = profile["role"]
 
-    elif user["role"] == "both":
-        if view not in ["mentor", "mentee"]:
-            view = "mentor"  # default
-
-    # -------------------------------------------------
-    # 🎯 Load matches based on VIEW
-    # -------------------------------------------------
-    if view == "mentor":
+    # =================================================
+    # 🔥 LOAD MATCHES BASED ON ACTIVE ROLE
+    # =================================================
+    if role == "mentor":
         matches = conn.execute("""
             SELECT * FROM matches
             WHERE mentor_id=?
         """, (user_id,)).fetchall()
 
-    else:  # mentee view
+    else:
         matches = conn.execute("""
             SELECT * FROM matches
             WHERE mentee_id=?
         """, (user_id,)).fetchall()
 
-    # -------------------------------------------------
-    # 🔥 Find FINAL match for this view
-    # -------------------------------------------------
+    # =================================================
+    # 🔥 FIND FINAL MATCH FOR THIS ROLE
+    # =================================================
     match = None
     for m in matches:
         if m["status"] == "final":
             match = m
+            break
 
-    # -------------------------------------------------
-    # 📅 Meeting system ONLY applies if final match exists
-    # -------------------------------------------------
+    # =================================================
+    # 🔥 MEETING SYSTEM
+    # =================================================
     selected_date = request.args.get("filter_date")
     if selected_date == "":
         selected_date = None
@@ -262,24 +377,14 @@ def dashboard():
 
     if match:
 
-        if selected_date:
-            slots = conn.execute("""
-                SELECT *
-                FROM meeting_slots
-                WHERE match_id=? AND date=? AND status!='unavailable'
-                ORDER BY date, start_time
-            """, (match["id"], selected_date)).fetchall()
-
-        else:
-            slots = conn.execute("""
-                SELECT *
-                FROM meeting_slots
-                WHERE match_id=? AND status!='unavailable'
-                ORDER BY date, start_time
-            """, (match["id"],)).fetchall()
+        slots = conn.execute("""
+            SELECT *
+            FROM meeting_slots
+            WHERE match_id=? AND status!='unavailable'
+            ORDER BY date, start_time
+        """, (match["id"],)).fetchall()
 
         now = datetime.now()
-        filtered_slots = []
 
         for slot in slots:
 
@@ -288,11 +393,7 @@ def dashboard():
                 "%Y-%m-%d %H:%M"
             )
 
-            if slot["status"] == "available":
-                if slot_dt > now:
-                    filtered_slots.append(slot)
-
-            elif slot["status"] == "booked":
+            if slot["status"] == "booked":
                 if slot_dt > now:
                     upcoming_meetings.append(slot)
                 else:
@@ -301,11 +402,9 @@ def dashboard():
             elif slot["status"] in ["completed", "missed"]:
                 past_meetings.append(slot)
 
-        slots = filtered_slots
-
-    # -------------------------------------------------
-    # 🔔 Notifications
-    # -------------------------------------------------
+    # =================================================
+    # 🔔 Notifications (user-based)
+    # =================================================
     notifications = conn.execute("""
         SELECT *
         FROM notifications
@@ -313,12 +412,21 @@ def dashboard():
         ORDER BY created_at DESC
     """, (user_id,)).fetchall()
 
+    # =================================================
+    # 🔥 LOAD USER PROFILES (mentor / mentee identities)
+    # =================================================
+    user_profiles = conn.execute("""
+        SELECT * FROM profiles
+        WHERE user_id=?
+    """, (user_id,)).fetchall()
+
     conn.close()
 
     return render_template(
         "dashboard.html",
         user=user,
-        view=view,
+        role=role,
+        user_profiles=user_profiles,
         matches=matches,
         match=match,
         slots=slots,
@@ -326,7 +434,7 @@ def dashboard():
         past_meetings=past_meetings,
         notifications=notifications,
         current_date=date.today(),
-        user_id=user_id
+        user_id=user_id,
     )
 
 @app.route("/clear_notifications")
@@ -927,18 +1035,40 @@ def my_match():
     if "user_id" not in session:
         return redirect("/login")
 
+    # 🔥 Get ACTIVE PROFILE (mentor or mentee)
+    profile = get_active_profile()
+
+    if not profile:
+        return redirect("/dashboard")
+
+    role = profile["role"]   # mentor OR mentee
+
     conn = get_db()
     user_id = session["user_id"]
 
-    # 🔥 Get the MOST RELEVANT match for this user
-    match = conn.execute("""
-        SELECT *
-        FROM matches
-        WHERE (mentor_id=? OR mentee_id=?)
-        AND status IN ('approved', 'final')
-        ORDER BY id DESC
-        LIMIT 1
-    """, (user_id, user_id)).fetchone()
+    # ====================================================
+    # 🔥 GET MATCH BASED ON ACTIVE ROLE ONLY
+    # ====================================================
+
+    if role == "mentor":
+        match = conn.execute("""
+            SELECT *
+            FROM matches
+            WHERE mentor_id=?
+            AND status IN ('approved', 'final')
+            ORDER BY id DESC
+            LIMIT 1
+        """, (user_id,)).fetchone()
+
+    else:  # mentee
+        match = conn.execute("""
+            SELECT *
+            FROM matches
+            WHERE mentee_id=?
+            AND status IN ('approved', 'final')
+            ORDER BY id DESC
+            LIMIT 1
+        """, (user_id,)).fetchone()
 
     mentor = None
     mentee = None
@@ -954,13 +1084,25 @@ def my_match():
             (match["mentee_id"],)
         ).fetchone()
 
-    # ⭐ Needed for navbar chat link
-    matches = conn.execute("""
-        SELECT *
-        FROM matches
-        WHERE (mentor_id=? OR mentee_id=?)
-        AND status='final'
-    """, (user_id, user_id)).fetchall()
+    # ====================================================
+    # 🔥 FINAL MATCHES (for navbar chat link) — ROLE AWARE
+    # ====================================================
+
+    if role == "mentor":
+        matches = conn.execute("""
+            SELECT *
+            FROM matches
+            WHERE mentor_id=?
+            AND status='final'
+        """, (user_id,)).fetchall()
+
+    else:
+        matches = conn.execute("""
+            SELECT *
+            FROM matches
+            WHERE mentee_id=?
+            AND status='final'
+        """, (user_id,)).fetchall()
 
     conn.close()
 
@@ -969,7 +1111,8 @@ def my_match():
         match=match,
         mentor=mentor,
         mentee=mentee,
-        matches=matches
+        matches=matches,
+        role=role
     )
 
 # ---------------- MATCH DETAILS ----------------
@@ -1150,23 +1293,49 @@ def profile():
     if "user_id" not in session:
         return redirect("/login")
 
+    # 🔥 Get ACTIVE PROFILE (mentor or mentee)
+    profile = get_active_profile()
+
+    if not profile:
+        return redirect("/dashboard")
+
+    role = profile["role"]
+
     conn = get_db()
 
+    # -------------------------------------------------
+    # USER INFO (same for both roles)
+    # -------------------------------------------------
     user = conn.execute("""
-    SELECT u.*, q.help_areas
-    FROM users u
-    LEFT JOIN questionnaires q ON u.id = q.user_id
-    WHERE u.id=?
+        SELECT u.*, q.help_areas
+        FROM users u
+        LEFT JOIN questionnaires q ON u.id = q.user_id
+        WHERE u.id=?
     """,(session["user_id"],)).fetchone()
 
-    matches = conn.execute("""
-    SELECT * FROM matches
-    WHERE mentor_id=? OR mentee_id=?
-    """,(session["user_id"],session["user_id"])).fetchall()
+    # -------------------------------------------------
+    # 🔥 MATCHES BASED ON ACTIVE ROLE ONLY
+    # -------------------------------------------------
+    if role == "mentor":
+        matches = conn.execute("""
+            SELECT * FROM matches
+            WHERE mentor_id=?
+        """,(session["user_id"],)).fetchall()
+
+    else:  # mentee
+        matches = conn.execute("""
+            SELECT * FROM matches
+            WHERE mentee_id=?
+        """,(session["user_id"],)).fetchall()
 
     conn.close()
 
-    return render_template("profile.html",user=user,matches=matches)
+    return render_template(
+        "profile.html",
+        user=user,
+        matches=matches,
+        role=role
+    )
 # ==============settings=======================
 @app.route("/settings")
 def settings():
@@ -1174,16 +1343,38 @@ def settings():
     if "user_id" not in session:
         return redirect("/login")
 
+    # 🔥 Get ACTIVE PROFILE (mentor or mentee)
+    profile = get_active_profile()
+
+    if not profile:
+        return redirect("/dashboard")
+
+    role = profile["role"]
+
     conn = get_db()
 
-    matches = conn.execute("""
-        SELECT * FROM matches
-        WHERE mentor_id=? OR mentee_id=?
-    """,(session["user_id"],session["user_id"])).fetchall()
+    # -------------------------------------------------
+    # 🔥 LOAD MATCHES BASED ON ACTIVE ROLE ONLY
+    # -------------------------------------------------
+    if role == "mentor":
+        matches = conn.execute("""
+            SELECT * FROM matches
+            WHERE mentor_id=?
+        """,(session["user_id"],)).fetchall()
+
+    else:  # mentee
+        matches = conn.execute("""
+            SELECT * FROM matches
+            WHERE mentee_id=?
+        """,(session["user_id"],)).fetchall()
 
     conn.close()
 
-    return render_template("settings.html", matches=matches)
+    return render_template(
+        "settings.html",
+        matches=matches,
+        role=role
+    )
 # ============================================================
 # ================= MEETING SLOT SYSTEM ======================
 # ============================================================

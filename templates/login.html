@@ -59,6 +59,7 @@
             text-transform: uppercase;
             padding: 12px;
             transition: 0.3s;
+            border-radius: 0;
         }
 
         .btn-aston:hover {
@@ -101,7 +102,7 @@
 <div class="login-card">
 
     <div class="logo">
-        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/6/6b/Aston_University_logo.svg/512px-Aston_University_logo.svg.png" height="60" alt="Aston Logo">
+        <img src="{{ url_for('static', filename='aston_logo.png') }}" height="60" alt="Aston Logo">
         <h3>Project GURU</h3>
     </div>
 
