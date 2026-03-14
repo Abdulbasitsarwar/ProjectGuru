@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project GURU – Chat</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        :root {
+            --aston-navy: #002d54;
+            --aston-red: #e4003a;
+            --aston-grey: #f4f4f4;
+            --aston-dark-grey: #333333;
+        }
+
+        body {
+            background-color: var(--aston-grey);
+            font-family: 'Roboto', Arial, sans-serif;
+            color: var(--aston-dark-grey);
+        }
+
+        /* --- PAGE TITLE --- */
+        h2 {
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        h2::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 28px;
+            background: var(--aston-red);
+            margin-right: 12px;
+        }
+
+        /* --- CHAT UNAVAILABLE CARD --- */
+        .chat-card {
+            background: white;
+            padding: 60px 40px;
+            border-radius: 0; /* Square edges for Aston branding */
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            border-top: 5px solid var(--aston-red);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .chat-icon {
+            font-size: 80px;
+            color: var(--aston-navy);
+            opacity: 0.2;
+            margin-bottom: 20px;
+        }
+
+        .btn-aston-outline {
+            border: 2px solid var(--aston-navy);
+            color: var(--aston-navy);
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 10px 30px;
+            transition: 0.3s;
+        }
+
+        .btn-aston-outline:hover {
+            background-color: var(--aston-navy);
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+{% include "navbar.html" %}
+
+<div class="container mt-5 text-center">
+
+    <h2 class="mb-5">Chat Interface</h2>
+
+    <div class="chat-card shadow">
+
+        <div class="chat-icon">
+            <i class="bi bi-chat-dots"></i>
+        </div>
+
+        <h4 class="fw-bold" style="color: var(--aston-navy);">Chat Unavailable</h4>
+
+        <p class="text-muted px-lg-5">
+            You do not have an active mentoring match yet. 
+            Once the administration approves a pairing for you, the secure chat feature will be enabled here.
+        </p>
+
+        <a href="/dashboard" class="btn btn-aston-outline mt-4">
+            <i class="bi bi-arrow-left me-2"></i> Return to Dashboard
+        </a>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
