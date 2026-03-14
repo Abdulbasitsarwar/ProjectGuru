@@ -5,6 +5,34 @@ from datetime import datetime, timedelta, date
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
+# ---------------- ADMIN CREDENTIALS ----------------
+
+ADMIN_EMAIL = "admin@guru.com"
+ADMIN_PASSWORD = "StrongAdmin123"
+
+@app.route("/admin_login", methods=["GET", "POST"])
+def admin_login():
+
+    if request.method == "POST":
+
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        # 🔐 Check against backend credentials
+        if email == ADMIN_EMAIL and password == ADMIN_PASSWORD:
+            session["admin_logged_in"] = True
+            return redirect("/admin")
+
+        return "Invalid admin credentials"
+
+    return render_template("admin_login.html")
+
+@app.route("/admin_logout")
+def admin_logout():
+
+    session.pop("admin_logged_in", None)
+
+    return redirect("/admin_login")
 
 # ============================================================
 # ---------------- DATABASE CONNECTION ----------------
@@ -608,6 +636,10 @@ def user_profile(user_id):
 # ---------------- ADMIN PANEL ----------------
 @app.route("/admin")
 def admin():
+
+    # 🔐 Block access if not logged in
+    if not session.get("admin_logged_in"):
+        return redirect("/admin_login")
 
     conn = get_db()
 
