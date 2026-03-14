@@ -2,13 +2,31 @@ from flask import Flask, render_template, request, redirect, session
 import sqlite3
 from datetime import datetime, timedelta, date
 
+from flask_mail import Mail, Message
+import random
+
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
+
+
+# =====================================================
+# 🔐 EMAIL CONFIGURATION (STEP 2 GOES HERE)
+# =====================================================
+
+app.config["MAIL_SERVER"] = "smtp.gmail.com"
+app.config["MAIL_PORT"] = 587
+app.config["MAIL_USE_TLS"] = True
+app.config["MAIL_USERNAME"] = "your_email@gmail.com"
+app.config["MAIL_PASSWORD"] = "your_app_password"
+
+mail = Mail(app)
+
+# =====================================================
 
 # ---------------- ADMIN CREDENTIALS ----------------
 
 ADMIN_EMAIL = "admin@guru.com"
-ADMIN_PASSWORD = "StrongAdmin123"
+ADMIN_PASSWORD = "wiuj5089"
 
 @app.route("/admin_login", methods=["GET", "POST"])
 def admin_login():
@@ -106,11 +124,17 @@ def signup():
             conn.close()
             return "Email already registered"
 
-        # 🔥 Create USER ACCOUNT
+        import random
+
+        verification_code = str(random.randint(100000, 999999))
+        
+        print("Verification code:", verification_code)
+
         conn.execute("""
-            INSERT INTO users (email, password, role, status)
-            VALUES (?, ?, ?, 'incomplete')
-        """, (email, password, role))
+            INSERT INTO users
+            (email, password, role, status, verification_code)
+            VALUES (?, ?, ?, 'incomplete', ?)
+        """, (email, password, role, verification_code))
 
         user = conn.execute(
             "SELECT id FROM users WHERE email=?",
@@ -164,6 +188,43 @@ def signup():
     # 👉 GET request → show signup page
     return render_template("signup.html")
 
+@app.route("/verify_email", methods=["GET", "POST"])
+def verify_email():
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    if request.method == "POST":
+
+        entered_code = request.form.get("code")
+
+        conn = get_db()
+
+        saved = conn.execute("""
+            SELECT verification_code
+            FROM users
+            WHERE id=?
+        """, (session["user_id"],)).fetchone()
+
+        # ✅ Correct code
+        if saved and entered_code == saved["verification_code"]:
+
+            conn.execute("""
+                UPDATE users
+                SET is_verified = 1
+                WHERE id = ?
+            """, (session["user_id"],))
+
+            conn.commit()
+            conn.close()
+
+            return redirect("/dashboard")
+
+        conn.close()
+        return "Invalid verification code"
+
+    return render_template("verify_email.html")
+
 @app.route("/switch_profile/<int:profile_id>")
 def switch_profile(profile_id):
 
@@ -202,10 +263,31 @@ def login():
             (email, password)
         ).fetchone()
 
+        # ❌ Invalid credentials
         if not user:
             conn.close()
             return "Invalid credentials"
 
+        # ==========================================
+        # 📋 QUESTIONNAIRE GATE FIRST
+        # If user signed up but did not complete form
+        # ==========================================
+        if user["status"] == "incomplete":
+            session["user_id"] = user["id"]
+            conn.close()
+            return redirect("/questionnaire")
+
+        # ==========================================
+        # 🔒 EMAIL VERIFICATION GATE SECOND
+        # ==========================================
+        if user["is_verified"] == 0:
+            session["user_id"] = user["id"]
+            conn.close()
+            return redirect("/verify_email")
+
+        # ==========================================
+        # ✅ NORMAL LOGIN (your original behavior)
+        # ==========================================
         session["user_id"] = user["id"]
 
         # -------------------------------------------------
@@ -259,6 +341,7 @@ def login():
 
         return redirect("/dashboard")
 
+    # 🟢 GET request → show login page
     return render_template("login.html")
 
 
@@ -309,7 +392,7 @@ def questionnaire():
         conn.commit()
         conn.close()
 
-        return redirect("/dashboard")
+        return redirect("/verify_email")
 
     conn.close()
     return render_template("questionnaire.html")

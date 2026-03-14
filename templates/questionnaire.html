@@ -1,208 +1,249 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Mentoring Questionnaire</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project GURU – Mentoring Questionnaire</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --primary-purple: #6f42c1;
+            --aston-navy: #002d54;
+            --aston-red: #e4003a;
+            --aston-grey: #f4f4f4;
+            --aston-dark-grey: #333333;
         }
 
+        body {
+            background-color: var(--aston-grey);
+            font-family: 'Roboto', Arial, sans-serif;
+            color: var(--aston-dark-grey);
+        }
+
+        .questionnaire-container {
+            max-width: 850px;
+            margin: 50px auto;
+        }
+
+        /* --- HEADER & LOGO --- */
+        .form-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .form-header img {
+            height: 70px;
+            margin-bottom: 20px;
+        }
+
+        .form-header h2 {
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- SECTIONS --- */
         .form-section {
             background: white;
-            padding: 30px;
-            border-radius: 16px;
-            border-left: 6px solid var(--primary-purple);
-            margin-bottom: 25px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 35px;
+            border-radius: 0; /* Square edges for institutional branding */
+            border-left: 6px solid var(--aston-red); /* Aston Red accent */
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .section-heading {
+            color: var(--aston-navy);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
         }
 
         .form-label {
-            font-weight: 600;
-            color: #334155;
+            font-weight: 700;
+            color: var(--aston-dark-grey);
+            margin-bottom: 10px;
         }
 
+        /* --- INPUTS & BUTTONS --- */
         .form-select, .form-control {
-            border-radius: 8px;
+            border-radius: 0;
             border: 1px solid #cbd5e1;
             padding: 12px;
+        }
+
+        .form-select:focus, .form-control:focus {
+            border-color: var(--aston-navy);
+            box-shadow: none;
+        }
+
+        .btn-aston-red {
+            background-color: var(--aston-red);
+            color: white;
+            border: none;
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 15px 50px;
+            transition: 0.3s;
+        }
+
+        .btn-aston-red:hover {
+            background-color: #b3002d;
+            color: white;
+        }
+
+        .form-check-label {
+            font-size: 0.95rem;
+            color: #555;
         }
     </style>
 </head>
 
-<body class="bg-light">
+<body>
 
-<div class="container mt-5 mb-5" style="max-width: 800px;">
+<div class="container questionnaire-container">
 
-    <div class="card shadow">
-        <div class="card-body">
-
-            <h2 class="mb-4 text-center">Mentoring Profile Questionnaire</h2>
-
-            <form method="POST">
-
-                <!-- ================= SECTION 1 ================= -->
-                <div class="form-section">
-                    <h5 class="text-primary mb-3">Section 1 — Your Current Role</h5>
-
-                    <label class="form-label">What is your current role at Aston University?</label>
-                    <select name="level" class="form-select" required>
-                        <option value="">Select your role</option>
-                        <option value="undergraduate">Undergraduate Student</option>
-                        <option value="postgraduate">Postgraduate Student</option>
-                        <option value="phd">PhD Researcher</option>
-                        <option value="lecturer">Lecturer</option>
-                        <option value="research_staff">Research Staff</option>
-                        <option value="admin_staff">Administrative Staff</option>
-                        <option value="other_staff">Other University Staff</option>
-                    </select>
-                </div>
-
-
-                <!-- ================= SECTION 2 ================= -->
-                <div class="form-section">
-                    <h5 class="text-primary mb-3">Section 2 — Professional Experience</h5>
-
-                    <label class="form-label">How many years of professional or academic experience do you have?</label>
-                    <select name="experience" class="form-select" required>
-                        <option value="">Select experience</option>
-                        <option value="0-1">0–1 Years</option>
-                        <option value="1-3">1–3 Years</option>
-                        <option value="3-5">3–5 Years</option>
-                        <option value="5-7">5–7 Years</option>
-                        <option value="7-10">7–10 Years</option>
-                        <option value="10+">10+ Years</option>
-                    </select>
-                </div>
-
-
-                <!-- ================= SECTION 3 ================= -->
-                <div class="form-section">
-                    <h5 class="text-primary mb-3">Section 3 — Support Areas</h5>
-
-                    <label class="form-label mb-3">
-                        In which areas are you seeking support OR able to provide support?
-                    </label>
-
-                    <div class="row">
-
-                        <div class="col-md-6">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="help" value="cv">
-                                <label class="form-check-label">CV & Applications</label>
-                            </div>
-
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="help" value="placements">
-                                <label class="form-check-label">Placements & Internships</label>
-                            </div>
-
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="help" value="career">
-                                <label class="form-check-label">Career Guidance</label>
-                            </div>
-
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="help" value="interview">
-                                <label class="form-check-label">Interview Preparation</label>
-                            </div>
-
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="help" value="university_life">
-                                <label class="form-check-label">Adjusting to University Life</label>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="help" value="research">
-                                <label class="form-check-label">Research Support</label>
-                            </div>
-
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="help" value="academic_writing">
-                                <label class="form-check-label">Academic Writing</label>
-                            </div>
-
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="help" value="professional_dev">
-                                <label class="form-check-label">Professional Development</label>
-                            </div>
-
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="help" value="leadership">
-                                <label class="form-check-label">Leadership & Personal Growth</label>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-
-                <!-- ================= SECTION 4 ================= -->
-                <div class="form-section">
-                    <h5 class="text-primary mb-3">Section 4 — Academic / Industry Domain</h5>
-
-                    <label class="form-label">Which domain best describes your background?</label>
-                    <select name="domain" class="form-select" required>
-                        <option value="">Select domain</option>
-                        <option value="computer_science">Computer Science</option>
-                        <option value="cyber_security">Cyber Security</option>
-                        <option value="business">Business & Management</option>
-                        <option value="finance">Finance & Accounting</option>
-                        <option value="engineering">Engineering</option>
-                        <option value="medicine">Medicine</option>
-                        <option value="optometry">Optometry</option>
-                        <option value="law">Law</option>
-                        <option value="psychology">Psychology</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-
-
-                <!-- ================= SECTION 5 ================= -->
-                <div class="form-section">
-                    <h5 class="text-primary mb-3">Section 5 — Availability</h5>
-
-                    <label class="form-label">When are you generally available?</label>
-                    <select name="availability" class="form-select" required>
-                        <option value="">Select availability</option>
-                        <option value="weekdays">Weekdays</option>
-                        <option value="weekends">Weekends</option>
-                        <option value="both">Both</option>
-                    </select>
-                </div>
-
-
-                <!-- ================= SECTION 6 ================= -->
-                <div class="form-section">
-                    <h5 class="text-primary mb-3">Section 6 — Preferred Meeting Location</h5>
-
-                    <label class="form-label">Where would you prefer mentoring sessions?</label>
-                    <select name="location" class="form-select" required>
-                        <option value="">Select location</option>
-                        <option value="main_building">Aston University Main Building</option>
-                        <option value="abs">Aston Business School</option>
-                        <option value="library">University Library</option>
-                        <option value="flexible">Flexible (Any Location)</option>
-                    </select>
-                </div>
-
-
-                <!-- ================= SUBMIT ================= -->
-                <div class="text-center mt-4">
-                    <button type="submit" class="btn btn-primary btn-lg px-5">
-                        Submit Profile
-                    </button>
-                </div>
-
-            </form>
-
-        </div>
+    <div class="form-header">
+        <img src="{{ url_for('static', filename='aston_logo.png') }}" alt="Aston University Logo">
+        <h2>Mentoring Profile Questionnaire</h2>
+        <p class="text-muted">Please complete your details to help our matching engine find the best mentor/mentee for you.</p>
     </div>
 
+    <form method="POST">
+
+        <div class="form-section">
+            <h5 class="section-heading">Section 1 — Your Current Role</h5>
+            <label class="form-label">What is your current role at Aston University?</label>
+            <select name="level" class="form-select" required>
+                <option value="">Select your role</option>
+                <option value="undergraduate">Undergraduate Student</option>
+                <option value="postgraduate">Postgraduate Student</option>
+                <option value="phd">PhD Researcher</option>
+                <option value="lecturer">Lecturer</option>
+                <option value="research_staff">Research Staff</option>
+                <option value="admin_staff">Administrative Staff</option>
+                <option value="other_staff">Other University Staff</option>
+            </select>
+        </div>
+
+        <div class="form-section">
+            <h5 class="section-heading">Section 2 — Professional Experience</h5>
+            <label class="form-label">How many years of professional or academic experience do you have?</label>
+            <select name="experience" class="form-select" required>
+                <option value="">Select experience</option>
+                <option value="0-1">0–1 Years</option>
+                <option value="1-3">1–3 Years</option>
+                <option value="3-5">3–5 Years</option>
+                <option value="5-7">5–7 Years</option>
+                <option value="7-10">7–10 Years</option>
+                <option value="10+">10+ Years</option>
+            </select>
+        </div>
+
+        <div class="form-section">
+            <h5 class="section-heading">Section 3 — Support Areas</h5>
+            <label class="form-label mb-3">In which areas are you seeking support OR able to provide support?</label>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="help" value="cv">
+                        <label class="form-check-label">CV & Applications</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="help" value="placements">
+                        <label class="form-check-label">Placements & Internships</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="help" value="career">
+                        <label class="form-check-label">Career Guidance</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="help" value="interview">
+                        <label class="form-check-label">Interview Preparation</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="help" value="university_life">
+                        <label class="form-check-label">Adjusting to University Life</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="help" value="research">
+                        <label class="form-check-label">Research Support</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="help" value="academic_writing">
+                        <label class="form-check-label">Academic Writing</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="help" value="professional_dev">
+                        <label class="form-check-label">Professional Development</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" name="help" value="leadership">
+                        <label class="form-check-label">Leadership & Personal Growth</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h5 class="section-heading">Section 4 — Academic / Industry Domain</h5>
+            <label class="form-label">Which domain best describes your background?</label>
+            <select name="domain" class="form-select" required>
+                <option value="">Select domain</option>
+                <option value="computer_science">Computer Science</option>
+                <option value="cyber_security">Cyber Security</option>
+                <option value="business">Business & Management</option>
+                <option value="finance">Finance & Accounting</option>
+                <option value="engineering">Engineering</option>
+                <option value="medicine">Medicine</option>
+                <option value="optometry">Optometry</option>
+                <option value="law">Law</option>
+                <option value="psychology">Psychology</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+
+        <div class="form-section">
+            <h5 class="section-heading">Section 5 — Availability</h5>
+            <label class="form-label">When are you generally available?</label>
+            <select name="availability" class="form-select" required>
+                <option value="">Select availability</option>
+                <option value="weekdays">Weekdays</option>
+                <option value="weekends">Weekends</option>
+                <option value="both">Both</option>
+            </select>
+        </div>
+
+        <div class="form-section">
+            <h5 class="section-heading">Section 6 — Preferred Meeting Location</h5>
+            <label class="form-label">Where would you prefer mentoring sessions?</label>
+            <select name="location" class="form-select" required>
+                <option value="">Select location</option>
+                <option value="main_building">Aston University Main Building</option>
+                <option value="abs">Aston Business School</option>
+                <option value="library">University Library</option>
+                <option value="flexible">Flexible (Any Location)</option>
+            </select>
+        </div>
+
+        <div class="text-center mt-5">
+            <button type="submit" class="btn btn-aston-red px-5">
+                SUBMIT PROFILE
+            </button>
+        </div>
+
+    </form>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

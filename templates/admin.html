@@ -119,6 +119,28 @@
         }
 
         /* --- BUTTONS & BADGES --- */
+
+            .badge-status {
+        border-radius: 0; /* Square edges for institutional feel */
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.7rem;
+        padding: 5px 10px;
+        letter-spacing: 0.5px;
+        border: 1px solid transparent;
+    }
+
+    .badge-verified {
+        background-color: #ecfdf5; /* Very light green */
+        color: #065f46;            /* Dark green text */
+        border-color: #10b981;    /* Emerald border */
+    }
+
+    .badge-unverified {
+        background-color: #fef2f2; /* Very light red */
+        color: #991b1b;            /* Dark red text */
+        border-color: var(--aston-red); /* Aston Red border */
+    }
         .btn-aston-red {
             background-color: var(--aston-red);
             color: white;
@@ -226,6 +248,7 @@
                         <th>Platform Role</th>
                         <th>University Level</th>
                         <th>Account Status</th>
+                        <th>Email Verified</th>
                         <th class="text-center">Action</th>
                     </tr>
                 </thead>
@@ -248,6 +271,17 @@
                             {% else %}
                                 <span class="badge bg-dark">{{ user.status }}</span>
                             {% endif %}
+                            <td class="text-center">
+                                {% if user.is_verified == 1 %}
+                                    <span class="badge-status badge-verified">
+                                        <i class="bi bi-patch-check-fill me-1"></i> Verified
+                                    </span>
+                                {% else %}
+                                    <span class="badge-status badge-unverified">
+                                        <i class="bi bi-exclamation-octagon-fill me-1"></i> Unverified
+                                    </span>
+                                {% endif %}
+                            </td>
                         </td>
                         <td class="text-center">
                             <div class="btn-group">
