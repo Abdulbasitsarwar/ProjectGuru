@@ -124,37 +124,36 @@ def signup():
             conn.close()
             return "Email already registered"
 
-            verification_code = str(random.randint(100000, 999999))
+        import random
 
-            # ✅ SAVE USER FIRST (IMPORTANT)
-            conn.execute("""
-                INSERT INTO users
-                (email, password, role, status, verification_code)
-                VALUES (?, ?, ?, 'incomplete', ?)
-            """, (email, password, role, verification_code))
+        verification_code = str(random.randint(100000, 999999))
 
-            conn.commit()
+        # ✅ SEND EMAIL
+        msg = Message(
+            subject="Project Guru Verification Code",
+            sender=app.config["MAIL_USERNAME"],
+            recipients=[email]
+        )
 
-            # ✅ THEN SEND EMAIL
-            msg = Message(
-                subject="Project Guru Verification Code",
-                sender=app.config["MAIL_USERNAME"],
-                recipients=[email]
-            )
+        msg.body = f"""
+Welcome to Project Guru!
 
-            msg.body = f"""
-            Welcome to Project Guru!
+Your verification code is:
 
-            Your verification code is:
+{verification_code}
 
-            {verification_code}
+Enter this code to verify your account.
+"""
 
-            Enter this code to verify your account.
-            """
+        mail.send(msg)
 
-            mail.send(msg)
+        print("Verification code:", verification_code)
 
-            print("Verification code:", verification_code)
+        conn.execute("""
+            INSERT INTO users
+            (email, password, role, status, verification_code)
+            VALUES (?, ?, ?, 'incomplete', ?)
+        """, (email, password, role, verification_code))
 
         user = conn.execute(
             "SELECT id FROM users WHERE email=?",
@@ -806,6 +805,42 @@ def decline_match(match_id):
 
     return redirect("/dashboard")
 
+@app.route("/cancel_accept/<int:match_id>")
+def cancel_accept(match_id):
+
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_db()
+    user_id = session["user_id"]
+
+    match = conn.execute(
+        "SELECT * FROM matches WHERE id=?",
+        (match_id,)
+    ).fetchone()
+
+    if not match:
+        conn.close()
+        return redirect("/dashboard")
+
+    # 👤 If mentor cancels acceptance
+    if user_id == match["mentor_id"]:
+        conn.execute(
+            "UPDATE matches SET mentor_response='pending' WHERE id=?",
+            (match_id,)
+        )
+
+    # 👤 If mentee cancels acceptance
+    elif user_id == match["mentee_id"]:
+        conn.execute(
+            "UPDATE matches SET mentee_response='pending' WHERE id=?",
+            (match_id,)
+        )
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/match")
 # ---------------- USER PROFILE ----------------
 @app.route("/user_profile/<int:user_id>")
 def user_profile(user_id):
@@ -1380,12 +1415,12 @@ def chat(match_id):
     # ❌ Match not found
     if not match:
         conn.close()
-        return render_template("no_chat.html")
+        return "Chat not available"
 
     # 🔐 Ensure user belongs to this match
     if user_id != match["mentor_id"] and user_id != match["mentee_id"]:
         conn.close()
-        return render_template("no_chat.html")
+        return "Access denied"
 
 
     # ====================================================
@@ -1596,103 +1631,6 @@ def settings():
         matches=matches,
         role=role
     )
-
-
-@app.route("/settings_send_reset_code")
-def settings_send_reset_code():
-
-    if "user_id" not in session:
-        return redirect("/login")
-
-    conn = get_db()
-
-    user = conn.execute(
-        "SELECT email FROM users WHERE id=?",
-        (session["user_id"],)
-    ).fetchone()
-
-    email = user["email"]
-
-    # 🔢 Generate code
-    reset_code = str(random.randint(100000, 999999))
-
-    conn.execute(
-        "UPDATE users SET reset_code=? WHERE id=?",
-        (reset_code, session["user_id"])
-    )
-
-    conn.commit()
-    conn.close()
-
-    # 📧 Send email
-    msg = Message(
-        subject="Project Guru Password Reset Code",
-        sender=app.config["MAIL_USERNAME"],
-        recipients=[email]
-    )
-
-    msg.body = f"""
-Your password reset code is:
-
-{reset_code}
-
-Enter this code to change your password.
-"""
-
-    mail.send(msg)
-
-    return redirect("/settings_verify_code")
-
-@app.route("/settings_verify_code", methods=["GET", "POST"])
-def settings_verify_code():
-
-    if "user_id" not in session:
-        return redirect("/login")
-
-    if request.method == "POST":
-
-        code = request.form.get("code")
-
-        conn = get_db()
-
-        saved = conn.execute(
-            "SELECT reset_code FROM users WHERE id=?",
-            (session["user_id"],)
-        ).fetchone()
-
-        if saved and code == saved["reset_code"]:
-            conn.close()
-            return redirect("/settings_new_password")
-
-        conn.close()
-        return "Invalid code"
-
-    return render_template("settings_verify_code.html")
-
-@app.route("/settings_new_password", methods=["GET", "POST"])
-def settings_new_password():
-
-    if "user_id" not in session:
-        return redirect("/login")
-
-    if request.method == "POST":
-
-        new_password = request.form.get("password")
-
-        conn = get_db()
-
-        conn.execute(
-            "UPDATE users SET password=?, reset_code=NULL WHERE id=?",
-            (new_password, session["user_id"])
-        )
-
-        conn.commit()
-        conn.close()
-
-        return redirect("/settings")
-
-    return render_template("settings_new_password.html")
-
 # ============================================================
 # ================= MEETING SLOT SYSTEM ======================
 # ============================================================
