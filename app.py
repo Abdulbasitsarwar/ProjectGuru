@@ -16,8 +16,8 @@ app.secret_key = "supersecretkey"
 app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_PORT"] = 587
 app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = "your_email@gmail.com"
-app.config["MAIL_PASSWORD"] = "your_app_password"
+app.config["MAIL_USERNAME"] = "astonmentoringscheme@gmail.com"
+app.config["MAIL_PASSWORD"] = "spjgtubburabshaz"
 
 mail = Mail(app)
 
@@ -127,7 +127,26 @@ def signup():
         import random
 
         verification_code = str(random.randint(100000, 999999))
-        
+
+        # ✅ SEND EMAIL
+        msg = Message(
+            subject="Project Guru Verification Code",
+            sender=app.config["MAIL_USERNAME"],
+            recipients=[email]
+        )
+
+        msg.body = f"""
+Welcome to Project Guru!
+
+Your verification code is:
+
+{verification_code}
+
+Enter this code to verify your account.
+"""
+
+        mail.send(msg)
+
         print("Verification code:", verification_code)
 
         conn.execute("""
@@ -185,7 +204,6 @@ def signup():
 
         return redirect("/questionnaire")
 
-    # 👉 GET request → show signup page
     return render_template("signup.html")
 
 @app.route("/verify_email", methods=["GET", "POST"])
