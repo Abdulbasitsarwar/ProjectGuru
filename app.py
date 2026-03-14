@@ -206,6 +206,93 @@ Enter this code to verify your account.
 
     return render_template("signup.html")
 
+@app.route("/forgot_password", methods=["GET", "POST"])
+def forgot_password():
+
+    if request.method == "POST":
+
+        email = request.form.get("email")
+
+        conn = get_db()
+
+        user = conn.execute(
+            "SELECT id FROM users WHERE email=?",
+            (email,)
+        ).fetchone()
+
+        if not user:
+            conn.close()
+            return "Email not found"
+
+        # 🔢 Generate reset code
+        reset_code = str(random.randint(100000, 999999))
+
+        conn.execute(
+            "UPDATE users SET reset_code=? WHERE id=?",
+            (reset_code, user["id"])
+        )
+        conn.commit()
+        conn.close()
+
+        # 📧 Send email
+        msg = Message(
+            subject="Project Guru Password Reset Code",
+            sender=app.config["MAIL_USERNAME"],
+            recipients=[email]
+        )
+
+        msg.body = f"""
+Your password reset code is:
+
+{reset_code}
+
+Enter this code to reset your password.
+"""
+
+        mail.send(msg)
+
+        session["reset_email"] = email
+
+        return redirect("/reset_password")
+
+    return render_template("forgot_password.html")
+
+@app.route("/reset_password", methods=["GET", "POST"])
+def reset_password():
+
+    if "reset_email" not in session:
+        return redirect("/login")
+
+    if request.method == "POST":
+
+        code = request.form.get("code")
+        new_password = request.form.get("password")
+
+        conn = get_db()
+
+        user = conn.execute(
+            "SELECT id, reset_code FROM users WHERE email=?",
+            (session["reset_email"],)
+        ).fetchone()
+
+        if not user or code != user["reset_code"]:
+            conn.close()
+            return "Invalid reset code"
+
+        conn.execute(
+            "UPDATE users SET password=?, reset_code=NULL WHERE id=?",
+            (new_password, user["id"])
+        )
+
+        conn.commit()
+        conn.close()
+
+        session.pop("reset_email")
+
+        return redirect("/login")
+
+    return render_template("reset_password.html")
+
 @app.route("/verify_email", methods=["GET", "POST"])
 def verify_email():
 
