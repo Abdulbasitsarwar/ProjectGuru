@@ -109,89 +109,69 @@
 
     {% if match %}
 
+        {# --- PENDING MATCH LOGIC --- #}
         {% if match.status == "approved" %}
 
-    {# -------- Determine who I am -------- #}
-    {% set is_mentor = (user_id == match.mentor_id) %}
-    {% set my_response = match.mentor_response if is_mentor else match.mentee_response %}
-    {% set other_response = match.mentee_response if is_mentor else match.mentor_response %}
+            {# Determine local perspective #}
+            {% if user_id == match.mentor_id %}
+                {% set my_response = match.mentor_response %}
+                {% set other_response = match.mentee_response %}
+            {% else %}
+                {% set my_response = match.mentee_response %}
+                {% set other_response = match.mentor_response %}
+            {% endif %}
 
-    {# ========================================================= #}
-    {# ⭐ CASE 1 — I ACCEPTED FIRST → WAITING                    #}
-    {# ========================================================= #}
-    {% if my_response == "accepted" and other_response != "accepted" %}
-
-        <div class="alert alert-info shadow-sm mb-4">
-            <i class="bi bi-hourglass-split me-2"></i>
-            You have accepted this match. Waiting for the other participant to confirm.
-        </div>
-
-        <div class="text-center">
-            <a href="/decline_match/{{match.id}}" class="btn btn-aston-red">
-                Cancel My Acceptance
-            </a>
-        </div>
-
-    {# ========================================================= #}
-    {# ⭐ CASE 2 — I DECLINED                                   #}
-    {# ========================================================= #}
-    {% elif my_response == "declined" %}
-
-        <div class="alert alert-danger shadow-sm mb-4">
-            <i class="bi bi-x-circle-fill me-2"></i>
-            You declined this match.
-        </div>
-
-    {# ========================================================= #}
-    {# ⭐ CASE 3 — I HAVE NOT RESPONDED YET                     #}
-    {# ========================================================= #}
-    {% else %}
-
-        <div class="alert alert-warning shadow-sm mb-4">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            A new mentoring match has been proposed. Please review and respond.
-        </div>
-
-        <div class="card match-card p-4">
-            <div class="row">
-                <div class="col-md-6 mb-4 mb-md-0">
-                    <h5><i class="bi bi-person-badge me-2"></i> Mentor Details</h5>
-                    <span class="info-label">University Email</span>
-                    <p class="fw-bold">{{ mentor.email }}</p>
+            {% if my_response == "accepted" and other_response != "accepted" %}
+                <div class="alert alert-info shadow-sm mb-4">
+                    <i class="bi bi-hourglass-split me-2"></i>
+                    You accepted this match. Waiting for the other participant to respond.
+                </div>
+                <div class="text-center">
+                    <a href="/decline_match/{{match.id}}" class="btn btn-aston-red">Cancel My Acceptance</a>
                 </div>
 
-                <div class="col-md-6">
-                    <h5><i class="bi bi-mortarboard me-2"></i> Mentee Details</h5>
-                    <span class="info-label">University Email</span>
-                    <p class="fw-bold">{{ mentee.email }}</p>
+            {% elif my_response == "declined" %}
+                <div class="alert alert-danger shadow-sm mb-4">
+                    <i class="bi bi-x-circle-fill me-2"></i> You declined this match.
                 </div>
-            </div>
 
-            <hr>
+            {% else %}
+                <div class="alert alert-warning shadow-sm mb-4">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    A new mentoring match has been proposed. Please review and respond.
+                </div>
 
-            <div class="d-flex gap-3 mt-2">
-                <a href="/accept_match/{{match.id}}" class="btn btn-success">
-                    ACCEPT MATCH
-                </a>
+                <div class="card match-card p-4">
+                    <div class="row">
+                        <div class="col-md-6 mb-4 mb-md-0">
+                            <h5><i class="bi bi-person-badge me-2"></i> Mentor Details</h5>
+                            <span class="info-label">University Email</span>
+                            <p class="fw-bold">{{ mentor.email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5><i class="bi bi-mortarboard me-2"></i> Mentee Details</h5>
+                            <span class="info-label">University Email</span>
+                            <p class="fw-bold">{{ mentee.email }}</p>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="d-flex gap-3 mt-2">
+                        <a href="/accept_match/{{match.id}}" class="btn btn-success">ACCEPT MATCH</a>
+                        <a href="/decline_match/{{match.id}}" class="btn btn-aston-red">DECLINE MATCH</a>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
 
-                <a href="/decline_match/{{match.id}}" class="btn btn-aston-red">
-                    DECLINE MATCH
-                </a>
-            </div>
-        </div>
-
-    {% endif %}
-
-    {% endif %}
-
+        {# --- FINALIZED MATCH LOGIC --- #}
         {% if match.status == "final" %}
             <div class="alert alert-success shadow-sm mb-4">
                 <i class="bi bi-check-all me-2"></i> Your mentoring match is confirmed.
             </div>
 
             <div class="card match-card p-4">
-                <div class="row">
-                    <div class="col-md-6 mb-4 mb-md-0">
+                <div class="row mb-4">
+                    <div class="col-md-6">
                         <h5><i class="bi bi-person-badge-fill me-2"></i> Mentor</h5>
                         <span class="info-label">Official Email</span>
                         <p class="fw-bold" style="color: var(--aston-navy);">{{ mentor.email }}</p>
@@ -202,6 +182,25 @@
                         <p class="fw-bold" style="color: var(--aston-navy);">{{ mentee.email }}</p>
                     </div>
                 </div>
+
+                <hr>
+
+                {% if match.score %}
+                <div class="mb-4">
+                    <h5>Compatibility Score</h5>
+                    <div class="fw-bold" style="font-size: 28px; color: var(--aston-navy);">{{ match.score }}/10</div>
+                </div>
+                {% endif %}
+
+                {% if match.reason %}
+                <div class="mb-4">
+                    <h5>Algorithmic Breakdown</h5>
+                    <p class="text-muted mb-0">
+                        {{ match.reason }}
+                    </p>
+                </div>
+                {% endif %}
+
                 <div class="mt-4 text-center">
                     <a href="/chat/{{match.id}}" class="btn btn-aston-navy w-100 py-3">
                         <i class="bi bi-chat-fill me-2"></i> ENTER MENTORING CHAT
@@ -217,6 +216,7 @@
         {% endif %}
 
     {% else %}
+        {# --- NO MATCH STATE --- #}
         <div class="text-center py-5">
             <i class="bi bi-person-x text-muted" style="font-size: 4rem;"></i>
             <p class="text-muted mt-3 fw-bold">You do not have a match currently.</p>

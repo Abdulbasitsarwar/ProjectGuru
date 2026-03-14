@@ -277,9 +277,19 @@
                                     {% elif slot.status == "missed" %}<span class="badge bg-danger badge-aston">Missed</span>
                                     {% endif %}
                                     
-                                    {% if user_id == match.mentor_id %}
-                                    <a href="/mark_attended/{{slot.id}}?tab=past" class="btn btn-outline-success btn-sm rounded-0 ms-2 fw-bold">Mark Attended</a>
-                                    {% endif %}
+                                    {% if user_id == match.mentor_id and slot.status == "booked" %}
+
+                                <a href="/mark_attended/{{slot.id}}?tab=past"
+                                class="btn btn-outline-success btn-sm rounded-0 ms-2 fw-bold">
+                                Mark Attended
+                                </a>
+
+                                <a href="/mark_missed/{{slot.id}}?tab=past"
+                                class="btn btn-outline-danger btn-sm rounded-0 ms-2 fw-bold">
+                                Mark Unattended
+                                </a>
+
+                                {% endif %}
                                 </div>
                             </div>
                         </div>

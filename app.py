@@ -619,14 +619,42 @@ def dashboard():
                 past_meetings.append(slot)
 
     # =================================================
-    # 🔔 Notifications (user-based)
+    # 🔔 ROLE-AWARE RECENT ACTIVITY (FINAL FIX)
     # =================================================
-    notifications = conn.execute("""
-        SELECT *
-        FROM notifications
-        WHERE user_id=?
-        ORDER BY created_at DESC
-    """, (user_id,)).fetchall()
+
+    if role == "mentor":
+
+        notifications = conn.execute("""
+            SELECT DISTINCT n.*
+            FROM notifications n
+            LEFT JOIN matches m
+            ON n.link LIKE '/chat/' || m.id
+            LEFT JOIN meeting_slots s
+            ON n.link LIKE '%dashboard%'
+            WHERE n.user_id=?
+            AND (
+                m.mentor_id=?      -- notifications from mentor matches
+                OR m.id IS NULL    -- general notifications (approval etc.)
+            )
+            ORDER BY n.created_at DESC
+        """, (user_id, user_id)).fetchall()
+
+    else:  # mentee
+
+        notifications = conn.execute("""
+            SELECT DISTINCT n.*
+            FROM notifications n
+            LEFT JOIN matches m
+            ON n.link LIKE '/chat/' || m.id
+            LEFT JOIN meeting_slots s
+            ON n.link LIKE '%dashboard%'
+            WHERE n.user_id=?
+            AND (
+                m.mentee_id=?      -- notifications from mentee matches
+                OR m.id IS NULL
+            )
+            ORDER BY n.created_at DESC
+        """, (user_id, user_id)).fetchall()
 
     # =================================================
     # 🔥 LOAD USER PROFILES (mentor / mentee identities)
@@ -1313,7 +1341,6 @@ def my_match():
             WHERE mentor_id=?
             AND status IN ('approved', 'final')
             ORDER BY id DESC
-            LIMIT 1
         """, (user_id,)).fetchone()
 
     else:  # mentee
@@ -1323,7 +1350,6 @@ def my_match():
             WHERE mentee_id=?
             AND status IN ('approved', 'final')
             ORDER BY id DESC
-            LIMIT 1
         """, (user_id,)).fetchone()
 
     mentor = None
@@ -1368,7 +1394,8 @@ def my_match():
         mentor=mentor,
         mentee=mentee,
         matches=matches,
-        role=role
+        role=role,
+        user_id=user_id
     )
 
 # ---------------- MATCH DETAILS ----------------
