@@ -2297,4 +2297,4 @@ def expire_old_matches(conn):
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    app.run(debug=True, threaded=False)
+    app.run(debug=True)
