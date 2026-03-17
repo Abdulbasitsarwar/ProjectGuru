@@ -39,7 +39,6 @@
             margin: 0;
         }
 
-        /* --- LOGO STYLE --- */
         .admin-logo {
             height: 50px;
             width: auto;
@@ -55,9 +54,7 @@
             transition: transform 0.2s;
         }
         
-        .stat-card:hover {
-            transform: translateY(-3px);
-        }
+        .stat-card:hover { transform: translateY(-3px); }
 
         .stat-card h6 {
             color: #666;
@@ -73,7 +70,7 @@
             margin: 0;
         }
 
-        /* --- TABLES --- */
+        /* --- TABLES & CONTAINERS --- */
         .section-container {
             background: white;
             padding: 25px;
@@ -100,7 +97,7 @@
         }
 
         .table {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             vertical-align: middle;
         }
 
@@ -112,7 +109,7 @@
         .table thead th {
             font-weight: 600;
             text-transform: uppercase;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             padding: 12px;
             border: none;
         }
@@ -128,17 +125,8 @@
             border: 1px solid transparent;
         }
 
-        .badge-verified {
-            background-color: #ecfdf5; 
-            color: #065f46;            
-            border-color: #10b981;    
-        }
-
-        .badge-unverified {
-            background-color: #fef2f2; 
-            color: #991b1b;            
-            border-color: var(--aston-red); 
-        }
+        .badge-verified { background-color: #ecfdf5; color: #065f46; border-color: #10b981; }
+        .badge-unverified { background-color: #fef2f2; color: #991b1b; border-color: var(--aston-red); }
 
         .btn-aston-red {
             background-color: var(--aston-red);
@@ -151,10 +139,7 @@
             padding: 8px 20px;
         }
 
-        .btn-aston-red:hover {
-            background-color: #b3002d;
-            color: white;
-        }
+        .btn-aston-red:hover { background-color: #b3002d; color: white; }
 
         .btn-aston-navy {
             background-color: var(--aston-navy);
@@ -165,28 +150,9 @@
             font-size: 0.7rem;
         }
 
-        .badge {
-            border-radius: 0;
-            font-weight: 600;
-            padding: 6px 10px;
-            text-transform: uppercase;
-            font-size: 0.7rem;
-        }
-
-        .bg-pending {
-            background-color: #fffbeb;
-            border-left: 4px solid #f59e0b;
-        }
-
-        .modal-content {
-            border-radius: 0;
-            border-top: 5px solid var(--aston-red);
-        }
-
-        .modal-header h5 {
-            color: var(--aston-navy);
-            font-weight: 700;
-        }
+        .badge { border-radius: 0; font-weight: 600; padding: 6px 10px; text-transform: uppercase; font-size: 0.7rem; }
+        .bg-pending { background-color: #fffbeb; border-left: 4px solid #f59e0b; }
+        .form-control { border-radius: 0; }
     </style>
 </head>
 
@@ -201,7 +167,6 @@
                 <p class="mb-0 opacity-75 small">Aston University Mentoring Platform Management</p>
             </div>
         </div>
-
         <a href="/admin_logout" class="btn btn-outline-light btn-sm rounded-0 fw-bold">LOG OUT</a>
     </div>
 </header>
@@ -235,15 +200,21 @@
         </div>
     </div>
 
+    <div class="section-container mb-4">
+        <h4 class="section-title">System Settings</h4>
+        <form action="/update_expiry" method="POST" class="d-flex align-items-center gap-3">
+            <label class="fw-bold mb-0">Match Expiry (hours):</label>
+            <input type="number" name="hours" min="1" value="48" class="form-control w-auto" required>
+            <button class="btn btn-aston-red">Save</button>
+        </form>
+    </div>
+
     <div class="section-container">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="section-title mb-0">User Management</h4>
-
             <form method="GET" action="/admin" class="d-flex" style="max-width: 350px;">
                 <input type="text" name="search" value="{{ search or '' }}" class="form-control" placeholder="Search email, ID, status...">
-                <button class="btn btn-aston-navy ms-2">
-                    <i class="bi bi-search"></i>
-                </button>
+                <button class="btn btn-aston-navy ms-2"><i class="bi bi-search"></i></button>
             </form>
         </div>
 
@@ -264,11 +235,7 @@
                     {% for user in users %}
                     <tr class="{% if user.status|lower == 'pending' %}bg-pending{% endif %}">
                         <td class="fw-bold text-muted">{{ user.id }}</td>
-                        <td>
-                            <a href="/user_profile/{{ user.id }}" class="text-decoration-none fw-bold" style="color: var(--aston-navy);">
-                                {{ user.email }}
-                            </a>
-                        </td>
+                        <td><a href="/user_profile/{{ user.id }}" class="text-decoration-none fw-bold" style="color: var(--aston-navy);">{{ user.email }}</a></td>
                         <td><span class="badge bg-secondary">{{ user.role }}</span></td>
                         <td class="text-capitalize">{{ user.level|replace('_', ' ') if user.level else 'N/A' }}</td>
                         <td>
@@ -290,9 +257,9 @@
                         <td class="text-center">
                             <div class="btn-group">
                                 {% if user.status|lower == "pending" %}
-                                <a href="/approve_user/{{ user.id }}" class="btn btn-success btn-sm fw-bold">APPROVE</a>
+                                <a href="/approve_user/{{ user.id }}" class="btn btn-success btn-sm rounded-0 fw-bold">APPROVE</a>
                                 {% endif %}
-                                <a href="/remove_user/{{ user.id }}" class="btn btn-outline-danger btn-sm fw-bold" onclick="return confirm('Permanently remove this user?');">REMOVE</a>
+                                <a href="/remove_user/{{ user.id }}" class="btn btn-outline-danger btn-sm rounded-0 fw-bold" onclick="return confirm('Permanently remove this user?');">REMOVE</a>
                             </div>
                         </td>
                     </tr>
@@ -305,15 +272,11 @@
     <div class="section-container">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="section-title mb-0">Suggested Pairings</h4>
-            
-            <div class="d-flex align-items-center">
-                <form method="GET" action="/admin" class="d-flex me-3" style="max-width: 300px;">
+            <div class="d-flex align-items-center gap-3">
+                <form method="GET" action="/admin" class="d-flex" style="max-width: 300px;">
                     <input type="text" name="match_search" value="{{ match_search or '' }}" class="form-control" placeholder="Search pairings...">
-                    <button class="btn btn-aston-navy ms-2">
-                        <i class="bi bi-search"></i>
-                    </button>
+                    <button class="btn btn-aston-navy ms-2"><i class="bi bi-search"></i></button>
                 </form>
-
                 <a href="/generate_matches" class="btn btn-aston-red">
                     <i class="bi bi-gear-fill me-1"></i> RUN MATCHING ENGINE
                 </a>
@@ -339,44 +302,56 @@
                         <td class="small fw-bold">{{ m.mentor_email }}</td>
                         <td class="small fw-bold">{{ m.mentee_email }}</td>
                         <td class="text-center">
-                            <a href="/match_details/{{ m.id }}" class="btn btn-aston-navy btn-sm px-3">{{ m.score }}/10</a>
+                            <a href="/match_details/{{ m.id }}" class="btn btn-aston-navy btn-sm">
+                                {{ m.score }}/10
+                            </a>
                         </td>
                         <td class="text-center">
                             {% if m.status == "final" %}
                                 <span class="badge bg-success">Confirmed</span>
                             {% elif m.status == "approved" %}
-                                <span class="badge bg-primary">Admin Approved</span>
+                                <span class="badge bg-primary">Approved</span>
                             {% else %}
                                 <span class="badge bg-light text-dark border">{{ m.status }}</span>
                             {% endif %}
                         </td>
+
                         <td class="text-center">
                             {% if m.mentor_response|lower == "accepted" %}
-                                <button class="btn btn-link btn-sm text-success p-0 fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#mentorFeedback{{ m.id }}">ACCEPTED <i class="bi bi-chat-dots ms-1"></i></button>
+                                <a href="/feedback_history/{{ m.id }}/mentor"
+                                   class="text-success fw-bold text-decoration-none">
+                                   ACCEPTED
+                                </a>
                             {% elif m.mentor_response|lower == "declined" %}
-                                <span class="text-danger small fw-bold">DECLINED</span>
+                                <span class="text-danger fw-bold">DECLINED</span>
                             {% else %}
-                                <span class="text-muted small italic">Pending...</span>
+                                <span class="text-muted">Pending...</span>
                             {% endif %}
                         </td>
+
                         <td class="text-center">
                             {% if m.mentee_response|lower == "accepted" %}
-                                <button class="btn btn-link btn-sm text-success p-0 fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#menteeFeedback{{ m.id }}">ACCEPTED <i class="bi bi-chat-dots ms-1"></i></button>
+                                <a href="/feedback_history/{{ m.id }}/mentee"
+                                   class="text-success fw-bold text-decoration-none">
+                                   ACCEPTED
+                                </a>
                             {% elif m.mentee_response|lower == "declined" %}
-                                <span class="text-danger small fw-bold">DECLINED</span>
+                                <span class="text-danger fw-bold">DECLINED</span>
                             {% else %}
-                                <span class="text-muted small italic">Pending...</span>
+                                <span class="text-muted">Pending...</span>
                             {% endif %}
                         </td>
+
                         <td class="text-center">
-                            {% if m.status == "pending" %}
-                                <a href="/approve_match/{{ m.id }}" class="btn btn-success btn-sm rounded-0">CONFIRM</a>
-                                <a href="/cancel_match/{{ m.id }}" class="btn btn-danger btn-sm rounded-0" onclick="return confirm('Cancel suggestion?');">VOID</a>
-                            {% elif m.status == "approved" %}
-                                <span class="text-muted small">Awaiting Users</span>
-                            {% elif m.status == "final" %}
-                                <a href="/cancel_match/{{ m.id }}" class="btn btn-outline-danger btn-sm rounded-0">TERMINATE</a>
-                            {% endif %}
+                            <div class="btn-group">
+                                {% if m.status == "pending" %}
+                                    <a href="/approve_match/{{ m.id }}" class="btn btn-success btn-sm">OK</a>
+                                    <a href="/cancel_match/{{ m.id }}" class="btn btn-danger btn-sm"
+                                       onclick="return confirm('Cancel suggestion?');">VOID</a>
+                                {% elif m.status == "final" %}
+                                    <a href="/cancel_match/{{ m.id }}" class="btn btn-outline-danger btn-sm">END</a>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -385,36 +360,6 @@
         </div>
     </div>
 </div>
-
-{% for m in matches %}
-<div class="modal fade" id="mentorFeedback{{ m.id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title">Mentor Comments</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body pb-4">
-                <p class="text-muted">{{ m.mentor_feedback or "The mentor has not left additional feedback yet." }}</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="menteeFeedback{{ m.id }}" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title">Mentee Comments</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body pb-4">
-                <p class="text-muted">{{ m.mentee_feedback or "The mentee has not left additional feedback yet." }}</p>
-            </div>
-        </div>
-    </div>
-</div>
-{% endfor %}
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>

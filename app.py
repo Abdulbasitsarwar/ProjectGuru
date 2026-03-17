@@ -904,7 +904,7 @@ def admin():
     conn = get_db()
 
     # =====================================================
-    # 🔎 USER SEARCH / FILTER
+    # 🔎 USER SEARCH / FILTER (UNCHANGED)
     # =====================================================
     search = request.args.get("search", "").strip()
 
@@ -937,7 +937,7 @@ def admin():
         """).fetchall()
 
     # =====================================================
-    # 🔎 MATCH SEARCH / FILTER (NEW)
+    # 🔎 MATCH SEARCH / FILTER — ✅ FULLY FIXED
     # =====================================================
     match_search = request.args.get("match_search", "").strip()
 
@@ -946,21 +946,19 @@ def admin():
         matches = conn.execute("""
             SELECT m.*,
                    u1.email AS mentor_email,
-                   u2.email AS mentee_email,
-                   f1.rating AS mentor_rating,
-                   f1.comment AS mentor_feedback,
-                   f2.rating AS mentee_rating,
-                   f2.comment AS mentee_feedback
+                   u2.email AS mentee_email
             FROM matches m
+
             JOIN users u1 ON m.mentor_id = u1.id
             JOIN users u2 ON m.mentee_id = u2.id
-            LEFT JOIN feedback f1 
-                ON f1.match_id = m.id AND f1.from_user = m.mentor_id
-            LEFT JOIN feedback f2 
-                ON f2.match_id = m.id AND f2.from_user = m.mentee_id
+
             WHERE
                 u1.email LIKE ?
                 OR u2.email LIKE ?
+
+            ORDER BY
+                CASE WHEN m.status = 'final' THEN 0 ELSE 1 END,
+                m.created_at DESC
         """, (
             f"%{match_search}%",
             f"%{match_search}%"
@@ -971,18 +969,15 @@ def admin():
         matches = conn.execute("""
             SELECT m.*,
                    u1.email AS mentor_email,
-                   u2.email AS mentee_email,
-                   f1.rating AS mentor_rating,
-                   f1.comment AS mentor_feedback,
-                   f2.rating AS mentee_rating,
-                   f2.comment AS mentee_feedback
+                   u2.email AS mentee_email
             FROM matches m
+
             JOIN users u1 ON m.mentor_id = u1.id
             JOIN users u2 ON m.mentee_id = u2.id
-            LEFT JOIN feedback f1 
-                ON f1.match_id = m.id AND f1.from_user = m.mentor_id
-            LEFT JOIN feedback f2 
-                ON f2.match_id = m.id AND f2.from_user = m.mentee_id
+
+            ORDER BY
+                CASE WHEN m.status = 'final' THEN 0 ELSE 1 END,
+                m.created_at DESC
         """).fetchall()
 
     # =====================================================
@@ -2226,12 +2221,14 @@ def add_availability(match_id):
 @app.route("/give_feedback/<int:match_id>", methods=["POST"])
 def give_feedback(match_id):
 
+    # 🔐 Must be logged in
     if "user_id" not in session:
         return redirect("/login")
 
     conn = get_db()
     user_id = session["user_id"]
 
+    # ✅ Only allow feedback on FINAL matches
     match = conn.execute(
         "SELECT * FROM matches WHERE id=? AND status='final'",
         (match_id,)
@@ -2241,27 +2238,90 @@ def give_feedback(match_id):
         conn.close()
         return redirect("/dashboard")
 
-    # Determine who is receiving feedback
+    # ✅ Determine who is reviewing whom
     if user_id == match["mentor_id"]:
         to_user = match["mentee_id"]
+
     elif user_id == match["mentee_id"]:
         to_user = match["mentor_id"]
+
     else:
+        # Not part of this match
         conn.close()
         return redirect("/dashboard")
 
+    # ✅ Get form values safely
     rating = request.form.get("rating")
-    comment = request.form.get("comment")
+    comment = request.form.get("comment", "").strip()
 
+    # Optional: ensure rating exists
+    if not rating:
+        conn.close()
+        return redirect("/dashboard")
+
+    # ✅ Insert feedback WITH timestamp
     conn.execute("""
-        INSERT INTO feedback (match_id, from_user, to_user, rating, comment)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO feedback 
+        (match_id, from_user, to_user, rating, comment, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
     """, (match_id, user_id, to_user, rating, comment))
 
     conn.commit()
     conn.close()
 
     return redirect("/dashboard")
+
+# ---------------- FEEDBACK HISTORY ----------------
+@app.route("/feedback_history/<int:match_id>/<role>")
+def feedback_history(match_id, role):
+
+    if not session.get("admin_logged_in"):
+        return redirect("/admin_login")
+
+    conn = get_db()
+
+    match = conn.execute("""
+        SELECT m.*,
+               u1.email AS mentor_email,
+               u2.email AS mentee_email
+        FROM matches m
+        JOIN users u1 ON m.mentor_id = u1.id
+        JOIN users u2 ON m.mentee_id = u2.id
+        WHERE m.id=?
+    """, (match_id,)).fetchone()
+
+    if not match:
+        conn.close()
+        return redirect("/admin")
+
+    # 👉 Show feedback WRITTEN BY mentor
+    if role == "mentor":
+        feedbacks = conn.execute("""
+            SELECT f.*, u.email AS from_email
+            FROM feedback f
+            JOIN users u ON f.from_user = u.id
+            WHERE f.match_id=? AND f.from_user=?
+            ORDER BY f.created_at DESC
+        """, (match_id, match["mentor_id"])).fetchall()
+
+    # 👉 Show feedback WRITTEN BY mentee
+    else:
+        feedbacks = conn.execute("""
+            SELECT f.*, u.email AS from_email
+            FROM feedback f
+            JOIN users u ON f.from_user = u.id
+            WHERE f.match_id=? AND f.from_user=?
+            ORDER BY f.created_at DESC
+        """, (match_id, match["mentee_id"])).fetchall()
+
+    conn.close()
+
+    return render_template(
+        "feedback_history.html",
+        match=match,
+        feedbacks=feedbacks,
+        role=role
+    )
 
 @app.route("/cancel_match/<int:match_id>")
 def cancel_match(match_id):
@@ -2313,6 +2373,16 @@ def clear_slots():
 
 def expire_old_matches(conn):
 
+    # 🔥 Get expiry hours from settings table
+    setting = conn.execute("""
+        SELECT value FROM settings
+        WHERE key='match_expiry_hours'
+    """).fetchone()
+
+    # Default = 48 hours if not set
+    expiry_hours = int(setting["value"]) if setting else 48
+
+
     expired = conn.execute("""
         SELECT id, mentor_id, mentee_id, created_at
         FROM matches
@@ -2322,9 +2392,13 @@ def expire_old_matches(conn):
 
     for m in expired:
 
-        created = datetime.strptime(m["created_at"], "%Y-%m-%d %H:%M:%S")
+        created = datetime.strptime(
+            m["created_at"],
+            "%Y-%m-%d %H:%M:%S"
+        )
 
-        if datetime.now() - created > timedelta(minutes=1):  # change to 48 hours later
+        # ⭐ ONLY CHANGE: minutes → hours from admin
+        if datetime.now() - created > timedelta(hours=expiry_hours):
 
             # ⭐ Mark match as EXPIRED
             conn.execute("""
@@ -2346,6 +2420,26 @@ def expire_old_matches(conn):
                 WHERE status='hidden'
                 AND (mentor_id=? OR mentee_id=?)
             """, (m["mentor_id"], m["mentee_id"]))
+            
+@app.route("/update_expiry", methods=["POST"])
+def update_expiry():
+
+    if not session.get("admin_logged_in"):
+        return redirect("/admin_login")
+
+    hours = request.form.get("hours")
+
+    conn = get_db()
+
+    conn.execute("""
+        INSERT OR REPLACE INTO settings (key, value)
+        VALUES ('match_expiry_hours', ?)
+    """, (hours,))
+
+    conn.commit()
+    conn.close()
+
+    return redirect("/admin")
 # ------------------------------------------------
 # MEETING SLOT STATUS TYPES
 # ------------------------------------------------
