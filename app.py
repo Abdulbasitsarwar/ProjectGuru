@@ -526,18 +526,15 @@ def get_active_profile():
 # ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 def dashboard():
-
     if "user_id" not in session:
         return redirect("/login")
 
     conn = get_db()
-    expire_old_matches(conn)
-    conn.commit()
-    # Ensure user exists
-    user = conn.execute(
-        "SELECT * FROM users WHERE id=?",
-        (session["user_id"],)
-    ).fetchone()
+    # If expire_old_matches is not defined yet, comment this out or ensure it exists
+    # expire_old_matches(conn) 
+    # conn.commit()
+
+    user = conn.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
 
     if not user:
         session.clear()
@@ -545,10 +542,6 @@ def dashboard():
         return redirect("/login")
 
     user_id = session["user_id"]
-
-    # =================================================
-    # 🔥 ACTIVE PROFILE (mentor OR mentee)
-    # =================================================
     profile = get_active_profile()
 
     if not profile:
@@ -557,114 +550,68 @@ def dashboard():
 
     role = profile["role"]
 
-    # =================================================
-    # 🔥 LOAD MATCHES BASED ON ACTIVE ROLE
-    # =================================================
     if role == "mentor":
-        matches = conn.execute("""
-            SELECT * FROM matches
-            WHERE mentor_id=?
-        """, (user_id,)).fetchall()
-
+        matches = conn.execute("SELECT * FROM matches WHERE mentor_id=?", (user_id,)).fetchall()
     else:
-        matches = conn.execute("""
-            SELECT * FROM matches
-            WHERE mentee_id=?
-        """, (user_id,)).fetchall()
+        matches = conn.execute("SELECT * FROM matches WHERE mentee_id=?", (user_id,)).fetchall()
+
+    match = next((m for m in matches if m["status"] == "final"), None)
 
     # =================================================
-    # 🔥 FIND FINAL MATCH FOR THIS ROLE
+    # 🔥 UPDATED MEETING SYSTEM (FILTERING PAST SLOTS)
     # =================================================
-    match = None
-    for m in matches:
-        if m["status"] == "final":
-            match = m
-            break
-
-    # =================================================
-    # 🔥 MEETING SYSTEM
-    # =================================================
-    selected_date = request.args.get("filter_date")
-    if selected_date == "":
-        selected_date = None
-
     slots = []
     upcoming_meetings = []
     past_meetings = []
+    now = datetime.now()
 
     if match:
-
-        slots = conn.execute("""
-            SELECT *
-            FROM meeting_slots
-            WHERE match_id=? AND status!='unavailable'
+        all_slots = conn.execute("""
+            SELECT * FROM meeting_slots
+            WHERE match_id=? AND status != 'unavailable'
             ORDER BY date, start_time
         """, (match["id"],)).fetchall()
 
-        now = datetime.now()
+        for slot in all_slots:
+            slot_dt = datetime.strptime(f"{slot['date']} {slot['start_time']}", "%Y-%m-%d %H:%M")
 
-        for slot in slots:
+            # 1. Logic for 'available' slots: Only show if they are in the future
+            if slot["status"] == "available":
+                if slot_dt > now:
+                    slots.append(slot)
+                # Past unbooked slots are simply ignored (they won't show anywhere)
 
-            slot_dt = datetime.strptime(
-                f"{slot['date']} {slot['start_time']}",
-                "%Y-%m-%d %H:%M"
-            )
-
-            if slot["status"] == "booked":
+            # 2. Logic for 'booked' slots: Sort into upcoming or past history
+            elif slot["status"] == "booked":
                 if slot_dt > now:
                     upcoming_meetings.append(slot)
                 else:
+                    # Move to history so mentor can mark attendance
                     past_meetings.append(slot)
 
+            # 3. Logic for processed slots: Always show in history
             elif slot["status"] in ["completed", "missed"]:
                 past_meetings.append(slot)
 
     # =================================================
-    # 🔔 ROLE-AWARE RECENT ACTIVITY (FINAL FIX)
+    # 🔔 ROLE-AWARE RECENT ACTIVITY
     # =================================================
-
     if role == "mentor":
-
         notifications = conn.execute("""
-            SELECT DISTINCT n.*
-            FROM notifications n
-            LEFT JOIN matches m
-            ON n.link LIKE '/chat/' || m.id
-            LEFT JOIN meeting_slots s
-            ON n.link LIKE '%dashboard%'
-            WHERE n.user_id=?
-            AND (
-                m.mentor_id=?      -- notifications from mentor matches
-                OR m.id IS NULL    -- general notifications (approval etc.)
-            )
+            SELECT DISTINCT n.* FROM notifications n
+            LEFT JOIN matches m ON n.link LIKE '/chat/' || m.id
+            WHERE n.user_id=? AND (m.mentor_id=? OR m.id IS NULL)
+            ORDER BY n.created_at DESC
+        """, (user_id, user_id)).fetchall()
+    else:
+        notifications = conn.execute("""
+            SELECT DISTINCT n.* FROM notifications n
+            LEFT JOIN matches m ON n.link LIKE '/chat/' || m.id
+            WHERE n.user_id=? AND (m.mentee_id=? OR m.id IS NULL)
             ORDER BY n.created_at DESC
         """, (user_id, user_id)).fetchall()
 
-    else:  # mentee
-
-        notifications = conn.execute("""
-            SELECT DISTINCT n.*
-            FROM notifications n
-            LEFT JOIN matches m
-            ON n.link LIKE '/chat/' || m.id
-            LEFT JOIN meeting_slots s
-            ON n.link LIKE '%dashboard%'
-            WHERE n.user_id=?
-            AND (
-                m.mentee_id=?      -- notifications from mentee matches
-                OR m.id IS NULL
-            )
-            ORDER BY n.created_at DESC
-        """, (user_id, user_id)).fetchall()
-
-    # =================================================
-    # 🔥 LOAD USER PROFILES (mentor / mentee identities)
-    # =================================================
-    user_profiles = conn.execute("""
-        SELECT * FROM profiles
-        WHERE user_id=?
-    """, (user_id,)).fetchall()
-
+    user_profiles = conn.execute("SELECT * FROM profiles WHERE user_id=?", (user_id,)).fetchall()
     conn.close()
 
     return render_template(

@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project GURU – Dashboard</title>
 
-
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
@@ -24,7 +23,6 @@
             color: var(--aston-dark-grey);
         }
 
-        /* --- DASHBOARD HEADERS --- */
         .dashboard-header {
             border-left: 8px solid var(--aston-red);
             padding-left: 20px;
@@ -32,7 +30,6 @@
             margin-bottom: 40px;
         }
 
-        /* --- CARDS & CONTAINERS --- */
         .card {
             border: none;
             border-radius: 0;
@@ -49,7 +46,6 @@
             letter-spacing: 1px;
         }
 
-        /* --- NOTIFICATIONS --- */
         .notifications-scroll {
             max-height: 250px;
             overflow-y: auto;
@@ -60,12 +56,7 @@
             padding: 15px 20px;
             transition: background 0.2s;
         }
-        
-        .notification-item:hover {
-            background-color: #fcfcfc;
-        }
 
-        /* --- MEETING SCHEDULER --- */
         .nav-pills .nav-link {
             border-radius: 0;
             color: var(--aston-navy);
@@ -95,12 +86,6 @@
             transition: all 0.2s;
         }
 
-        .meeting-item:hover {
-            background: #fdfdfd;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
-        }
-
-        /* --- BUTTONS & BADGES --- */
         .btn-aston-red {
             background-color: var(--aston-red);
             color: white;
@@ -111,14 +96,6 @@
         }
 
         .btn-aston-red:hover { background-color: #b3002d; color: white; }
-
-        .btn-aston-outline {
-            border: 2px solid var(--aston-navy);
-            color: var(--aston-navy);
-            border-radius: 0;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
 
         .badge-aston {
             border-radius: 0;
@@ -144,27 +121,20 @@
         <h2 class="fw-bold">Student Dashboard</h2>
         <p class="text-muted mb-0">Welcome back to the Project GURU Mentoring Scheme.</p>
     </div>
-        {% if user_profiles|length > 1 %}
+
+    {% if user_profiles|length > 1 %}
     <div class="mb-4 text-end">
-
         <span class="fw-bold me-2">Switch Role:</span>
-
         {% for p in user_profiles %}
             <a href="/switch_profile/{{ p.id }}"
-            class="btn btn-sm
-            {% if p.role == role %}
-                btn-primary
-            {% else %}
-                btn-outline-primary
-            {% endif %}">
-            {{ p.role.capitalize() }}
+               class="btn btn-sm {% if p.role == role %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                {{ p.role.capitalize() }}
             </a>
         {% endfor %}
-
     </div>
     {% endif %}
+
     <div class="row">
-        
         <div class="col-lg-4">
             <div class="card">
                 <div class="card-header-aston">
@@ -223,9 +193,9 @@
                                 <div class="text-end">
                                     <span class="badge badge-aston bg-success mb-2 d-block">Confirmed</span>
                                     {% if user_id == match.mentee_id %}
-                                    <a href="/cancel_booking/{{slot.id}}?tab=upcoming" class="btn btn-link text-danger btn-sm p-0 fw-bold">Cancel Booking</a>
+                                    <a href="/cancel_booking/{{slot.id}}?tab=upcoming" class="btn btn-link text-danger btn-sm p-0 fw-bold">CANCEL BOOKING</a>
                                     {% elif user_id == match.mentor_id %}
-                                    <a href="/mentor_cancel_meeting/{{slot.id}}?tab=upcoming" class="btn btn-link text-danger btn-sm p-0 fw-bold">Cancel Meeting</a>
+                                    <a href="/mentor_cancel_meeting/{{slot.id}}?tab=upcoming" class="btn btn-link text-danger btn-sm p-0 fw-bold">CANCEL MEETING</a>
                                     {% endif %}
                                 </div>
                             </div>
@@ -271,25 +241,36 @@
                         {% for slot in past_meetings %}
                         <div class="card mb-2 border meeting-item">
                             <div class="card-body d-flex justify-content-between align-items-center py-2">
-                                <div><span class="fw-bold">{{slot.date}}</span> <small class="ms-2 text-muted">({{slot.start_time}})</small></div>
                                 <div>
-                                    {% if slot.status == "completed" %}<span class="badge bg-success badge-aston">Attended</span>
-                                    {% elif slot.status == "missed" %}<span class="badge bg-danger badge-aston">Missed</span>
+                                    <span class="fw-bold">{{slot.date}}</span> 
+                                    <small class="ms-2 text-muted">({{slot.start_time}})</small>
+                                    <i class="bi bi-chat-square-text ms-2 text-muted" title="Meeting Notes/Feedback" style="cursor:pointer;"></i>
+                                </div>
+                                
+                                <div class="d-flex align-items-center">
+                                    {% if slot.status == "completed" %}
+                                        <span class="badge bg-success badge-aston">Attended</span>
+                                    {% elif slot.status == "missed" %}
+                                        <span class="badge bg-danger badge-aston">Missed</span>
+                                    {% elif slot.status == "booked" %}
+                                        <span class="badge bg-warning text-dark badge-aston">Awaiting Action</span>
                                     {% endif %}
                                     
-                                    {% if user_id == match.mentor_id and slot.status == "booked" %}
-
-                                <a href="/mark_attended/{{slot.id}}?tab=past"
-                                class="btn btn-outline-success btn-sm rounded-0 ms-2 fw-bold">
-                                Mark Attended
-                                </a>
-
-                                <a href="/mark_missed/{{slot.id}}?tab=past"
-                                class="btn btn-outline-danger btn-sm rounded-0 ms-2 fw-bold">
-                                Mark Unattended
-                                </a>
-
-                                {% endif %}
+                                    {% if user_id == match.mentor_id %}
+                                        <div class="ms-3">
+                                            {% if slot.status == "booked" %}
+                                                <a href="/mark_attended/{{slot.id}}?tab=past" class="btn btn-sm btn-success py-1">Attended</a>
+                                                <a href="/mark_missed/{{slot.id}}?tab=past" class="btn btn-sm btn-danger py-1">Missed</a>
+                                            {% else %}
+                                                <a href="/mark_meeting/{{slot.id}}/booked" class="btn btn-outline-secondary btn-sm" title="Undo Action">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </a>
+                                            {% endif %}
+                                            <a href="/mentor_cancel_meeting/{{slot.id}}?tab=past" class="btn btn-link text-danger btn-sm p-0 ms-2" onclick="return confirm('Remove from history?')" title="Delete from Record">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
