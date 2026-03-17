@@ -86,7 +86,6 @@
             font-weight: 700;
             text-transform: uppercase;
             font-size: 1.1rem;
-            margin-bottom: 25px;
             display: flex;
             align-items: center;
         }
@@ -119,28 +118,28 @@
         }
 
         /* --- BUTTONS & BADGES --- */
+        .badge-status {
+            border-radius: 0;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            padding: 5px 10px;
+            letter-spacing: 0.5px;
+            border: 1px solid transparent;
+        }
 
-            .badge-status {
-        border-radius: 0; /* Square edges for institutional feel */
-        font-weight: 700;
-        text-transform: uppercase;
-        font-size: 0.7rem;
-        padding: 5px 10px;
-        letter-spacing: 0.5px;
-        border: 1px solid transparent;
-    }
+        .badge-verified {
+            background-color: #ecfdf5; 
+            color: #065f46;            
+            border-color: #10b981;    
+        }
 
-    .badge-verified {
-        background-color: #ecfdf5; /* Very light green */
-        color: #065f46;            /* Dark green text */
-        border-color: #10b981;    /* Emerald border */
-    }
+        .badge-unverified {
+            background-color: #fef2f2; 
+            color: #991b1b;            
+            border-color: var(--aston-red); 
+        }
 
-    .badge-unverified {
-        background-color: #fef2f2; /* Very light red */
-        color: #991b1b;            /* Dark red text */
-        border-color: var(--aston-red); /* Aston Red border */
-    }
         .btn-aston-red {
             background-color: var(--aston-red);
             color: white;
@@ -179,7 +178,6 @@
             border-left: 4px solid #f59e0b;
         }
 
-        /* --- MODALS --- */
         .modal-content {
             border-radius: 0;
             border-top: 5px solid var(--aston-red);
@@ -238,7 +236,17 @@
     </div>
 
     <div class="section-container">
-        <h4 class="section-title">User Management</h4>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="section-title mb-0">User Management</h4>
+
+            <form method="GET" action="/admin" class="d-flex" style="max-width: 350px;">
+                <input type="text" name="search" value="{{ search or '' }}" class="form-control" placeholder="Search email, ID, status...">
+                <button class="btn btn-aston-navy ms-2">
+                    <i class="bi bi-search"></i>
+                </button>
+            </form>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-hover border">
                 <thead>
@@ -262,7 +270,7 @@
                             </a>
                         </td>
                         <td><span class="badge bg-secondary">{{ user.role }}</span></td>
-                        <td class="text-capitalize">{{ user.level|replace('_', ' ') }}</td>
+                        <td class="text-capitalize">{{ user.level|replace('_', ' ') if user.level else 'N/A' }}</td>
                         <td>
                             {% if user.status|lower == "accepted" %}
                                 <span class="badge bg-success">Active</span>
@@ -271,24 +279,20 @@
                             {% else %}
                                 <span class="badge bg-dark">{{ user.status }}</span>
                             {% endif %}
-                            <td class="text-center">
-                                {% if user.is_verified == 1 %}
-                                    <span class="badge-status badge-verified">
-                                        <i class="bi bi-patch-check-fill me-1"></i> Verified
-                                    </span>
-                                {% else %}
-                                    <span class="badge-status badge-unverified">
-                                        <i class="bi bi-exclamation-octagon-fill me-1"></i> Unverified
-                                    </span>
-                                {% endif %}
-                            </td>
+                        </td>
+                        <td class="text-center">
+                            {% if user.is_verified == 1 %}
+                                <span class="badge-status badge-verified"><i class="bi bi-patch-check-fill me-1"></i> Verified</span>
+                            {% else %}
+                                <span class="badge-status badge-unverified"><i class="bi bi-exclamation-octagon-fill me-1"></i> Unverified</span>
+                            {% endif %}
                         </td>
                         <td class="text-center">
                             <div class="btn-group">
                                 {% if user.status|lower == "pending" %}
-                                <a href="/approve_user/{{ user.id }}" class="btn btn-success btn-sm rounded-0 fw-bold">APPROVE</a>
+                                <a href="/approve_user/{{ user.id }}" class="btn btn-success btn-sm fw-bold">APPROVE</a>
                                 {% endif %}
-                                <a href="/remove_user/{{ user.id }}" class="btn btn-outline-danger btn-sm rounded-0 fw-bold" onclick="return confirm('Permanently remove this user?');">REMOVE</a>
+                                <a href="/remove_user/{{ user.id }}" class="btn btn-outline-danger btn-sm fw-bold" onclick="return confirm('Permanently remove this user?');">REMOVE</a>
                             </div>
                         </td>
                     </tr>
@@ -301,9 +305,19 @@
     <div class="section-container">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="section-title mb-0">Suggested Pairings</h4>
-            <a href="/generate_matches" class="btn btn-aston-red">
-                <i class="bi bi-gear-fill me-1"></i> RUN MATCHING ENGINE
-            </a>
+            
+            <div class="d-flex align-items-center">
+                <form method="GET" action="/admin" class="d-flex me-3" style="max-width: 300px;">
+                    <input type="text" name="match_search" value="{{ match_search or '' }}" class="form-control" placeholder="Search pairings...">
+                    <button class="btn btn-aston-navy ms-2">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+
+                <a href="/generate_matches" class="btn btn-aston-red">
+                    <i class="bi bi-gear-fill me-1"></i> RUN MATCHING ENGINE
+                </a>
+            </div>
         </div>
 
         <div class="table-responsive">
@@ -325,9 +339,7 @@
                         <td class="small fw-bold">{{ m.mentor_email }}</td>
                         <td class="small fw-bold">{{ m.mentee_email }}</td>
                         <td class="text-center">
-                            <a href="/match_details/{{ m.id }}" class="btn btn-aston-navy btn-sm px-3">
-                                {{ m.score }}/10
-                            </a>
+                            <a href="/match_details/{{ m.id }}" class="btn btn-aston-navy btn-sm px-3">{{ m.score }}/10</a>
                         </td>
                         <td class="text-center">
                             {% if m.status == "final" %}

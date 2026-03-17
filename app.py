@@ -903,33 +903,91 @@ def admin():
 
     conn = get_db()
 
-    # USERS
-    users = conn.execute("""
-        SELECT u.*, 
-               COALESCE(q.help_areas, 'Not filled') AS help_areas
-        FROM users u
-        LEFT JOIN questionnaires q ON u.id = q.user_id
-    """).fetchall()
+    # =====================================================
+    # 🔎 USER SEARCH / FILTER
+    # =====================================================
+    search = request.args.get("search", "").strip()
 
-    # MATCHES
-    matches = conn.execute("""
-        SELECT m.*,
-               u1.email AS mentor_email,
-               u2.email AS mentee_email,
-               f1.rating AS mentor_rating,
-               f1.comment AS mentor_feedback,
-               f2.rating AS mentee_rating,
-               f2.comment AS mentee_feedback
-        FROM matches m
-        JOIN users u1 ON m.mentor_id = u1.id
-        JOIN users u2 ON m.mentee_id = u2.id
-        LEFT JOIN feedback f1 
-            ON f1.match_id = m.id AND f1.from_user = m.mentor_id
-        LEFT JOIN feedback f2 
-            ON f2.match_id = m.id AND f2.from_user = m.mentee_id
-    """).fetchall()
+    if search:
 
-    # ----------- STATS -----------
+        users = conn.execute("""
+            SELECT u.*, 
+                   COALESCE(q.help_areas, 'Not filled') AS help_areas
+            FROM users u
+            LEFT JOIN questionnaires q ON u.id = q.user_id
+            WHERE
+                u.email LIKE ?
+                OR u.id LIKE ?
+                OR u.status LIKE ?
+                OR u.is_verified LIKE ?
+        """, (
+            f"%{search}%",
+            f"%{search}%",
+            f"%{search}%",
+            f"%{search}%"
+        )).fetchall()
+
+    else:
+
+        users = conn.execute("""
+            SELECT u.*,
+                   COALESCE(q.help_areas, 'Not filled') AS help_areas
+            FROM users u
+            LEFT JOIN questionnaires q ON u.id = q.user_id
+        """).fetchall()
+
+    # =====================================================
+    # 🔎 MATCH SEARCH / FILTER (NEW)
+    # =====================================================
+    match_search = request.args.get("match_search", "").strip()
+
+    if match_search:
+
+        matches = conn.execute("""
+            SELECT m.*,
+                   u1.email AS mentor_email,
+                   u2.email AS mentee_email,
+                   f1.rating AS mentor_rating,
+                   f1.comment AS mentor_feedback,
+                   f2.rating AS mentee_rating,
+                   f2.comment AS mentee_feedback
+            FROM matches m
+            JOIN users u1 ON m.mentor_id = u1.id
+            JOIN users u2 ON m.mentee_id = u2.id
+            LEFT JOIN feedback f1 
+                ON f1.match_id = m.id AND f1.from_user = m.mentor_id
+            LEFT JOIN feedback f2 
+                ON f2.match_id = m.id AND f2.from_user = m.mentee_id
+            WHERE
+                u1.email LIKE ?
+                OR u2.email LIKE ?
+        """, (
+            f"%{match_search}%",
+            f"%{match_search}%"
+        )).fetchall()
+
+    else:
+
+        matches = conn.execute("""
+            SELECT m.*,
+                   u1.email AS mentor_email,
+                   u2.email AS mentee_email,
+                   f1.rating AS mentor_rating,
+                   f1.comment AS mentor_feedback,
+                   f2.rating AS mentee_rating,
+                   f2.comment AS mentee_feedback
+            FROM matches m
+            JOIN users u1 ON m.mentor_id = u1.id
+            JOIN users u2 ON m.mentee_id = u2.id
+            LEFT JOIN feedback f1 
+                ON f1.match_id = m.id AND f1.from_user = m.mentor_id
+            LEFT JOIN feedback f2 
+                ON f2.match_id = m.id AND f2.from_user = m.mentee_id
+        """).fetchall()
+
+    # =====================================================
+    # 📊 STATS (UNCHANGED)
+    # =====================================================
     total_users = conn.execute(
         "SELECT COUNT(*) FROM users"
     ).fetchone()[0]
@@ -963,7 +1021,9 @@ def admin():
         total_users=total_users,
         pending_users=pending_users,
         approved_users=approved_users,
-        success_rate=success_rate
+        success_rate=success_rate,
+        search=search,
+        match_search=match_search
     )
 
 @app.route("/approve_user/<int:user_id>")
