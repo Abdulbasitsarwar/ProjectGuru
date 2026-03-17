@@ -531,7 +531,8 @@ def dashboard():
         return redirect("/login")
 
     conn = get_db()
-
+    expire_old_matches(conn)
+    conn.commit()
     # Ensure user exists
     user = conn.execute(
         "SELECT * FROM users WHERE id=?",
@@ -776,7 +777,6 @@ def accept_match(match_id):
     return redirect("/match")
 
 
-# ---------------- DECLINE MATCH ----------------
 @app.route("/decline_match/<int:match_id>")
 def decline_match(match_id):
 
@@ -798,7 +798,7 @@ def decline_match(match_id):
     mentor_id = selected["mentor_id"]
     mentee_id = selected["mentee_id"]
 
-    # Mark match as declined
+    # ❌ Mark match as declined
     conn.execute("""
         UPDATE matches
         SET status='declined',
@@ -807,13 +807,21 @@ def decline_match(match_id):
         WHERE id=?
     """, (match_id,))
 
-    # Save pair so they never match again
+    # 🚫 Prevent these two from matching again
     conn.execute("""
         INSERT INTO declined_pairs (mentor_id, mentee_id)
         VALUES (?, ?)
     """, (mentor_id, mentee_id))
 
-    # Notify BOTH users
+    # 🔓 Restore hidden suggestions for BOTH users
+    conn.execute("""
+        UPDATE matches
+        SET status='pending'
+        WHERE status='hidden'
+        AND (mentor_id=? OR mentee_id=?)
+    """, (mentor_id, mentee_id))
+
+    # 🔔 Notify users
     create_notification(
         conn,
         mentor_id,
@@ -1077,15 +1085,41 @@ def calculate_score(mentor, mentee, conn):
     if not common:
         return 0, "No common support area"
 
-    score += 3
-    reasons.append("Common support area (+3)")
+    # ⭐ Score based on overlap
+    overlap = len(common)
+    if overlap == 1:
+        score += 2
+    elif overlap == 2:
+        score += 3
+    else:
+        score += 4
 
-    # ---------------- DOMAIN ----------------
+    reasons.append(f"{overlap} shared support area(s)")
+
+    # ---------------- DOMAIN (GROUP CHECK) ----------------
+
+    domain_groups = [
+        {"Computer Science", "Cybersecurity"},
+        {"Business", "Accounting"},
+        {"Medicine", "Psychology", "Optometry"},
+        {"Law"},
+        {"Engineering"},
+        {"Other"}
+    ]
+
+    def same_group(d1, d2):
+        for g in domain_groups:
+            if d1 in g and d2 in g:
+                return True
+        return False
+
+    if not same_group(mentor["domain"], mentee["domain"]):
+        return 0, "Incompatible domain"
+
+    # Exact domain bonus
     if mentor["domain"] == mentee["domain"]:
         score += 2
         reasons.append("Same domain (+2)")
-    else:
-        reasons.append("Different domain (+0)")
 
     # ---------------- EXPERIENCE ----------------
     exp_map = {
@@ -1103,12 +1137,17 @@ def calculate_score(mentor, mentee, conn):
     if mentor_exp < mentee_exp:
         return 0, "Mentor less experienced"
 
-    if mentor_exp == mentee_exp:
+    diff = mentor_exp - mentee_exp
+
+    if diff == 0:
         score += 1
         reasons.append("Equal experience (+1)")
-    else:
+    elif diff <= 2:
         score += 2
-        reasons.append("Mentor more experienced (+2)")
+        reasons.append("Mentor slightly more experienced (+2)")
+    else:
+        score += 3
+        reasons.append("Mentor much more experienced (+3)")
 
     # ---------------- AVAILABILITY ----------------
     if (
@@ -1119,7 +1158,7 @@ def calculate_score(mentor, mentee, conn):
         score += 1
         reasons.append("Availability compatible (+1)")
     else:
-        reasons.append("Availability mismatch (+0)")
+        return 0, "Availability mismatch"
 
     # ---------------- LOCATION ----------------
     if (
@@ -1130,19 +1169,17 @@ def calculate_score(mentor, mentee, conn):
         score += 1
         reasons.append("Location compatible (+1)")
     else:
-        reasons.append("Location mismatch (+0)")
+        return 0, "Location mismatch"
 
-    # ---------------- BONUS POINT ----------------
-    # If domain AND availability AND location all match perfectly
+    # ---------------- BONUS ----------------
     if (
         mentor["domain"] == mentee["domain"]
         and mentor["availability"] == mentee["availability"]
         and mentor["location"] == mentee["location"]
     ):
         score += 1
-        reasons.append("Perfect alignment bonus (+1)")
+        reasons.append("Perfect alignment (+1)")
 
-    # Ensure max is 10
     if score > 10:
         score = 10
 
@@ -1265,7 +1302,8 @@ def approve_match(match_id):
     # --------------------------------------------------
     conn.execute("""
         UPDATE matches
-        SET status='approved'
+        SET status='approved',
+            created_at=datetime('now')
         WHERE id=?
     """, (match_id,))
 
@@ -2213,6 +2251,41 @@ def clear_slots():
 
     return "All meeting slots deleted"
 
+def expire_old_matches(conn):
+
+    expired = conn.execute("""
+        SELECT id, mentor_id, mentee_id, created_at
+        FROM matches
+        WHERE status='approved'
+        AND created_at IS NOT NULL
+    """).fetchall()
+
+    for m in expired:
+
+        created = datetime.strptime(m["created_at"], "%Y-%m-%d %H:%M:%S")
+
+        if datetime.now() - created > timedelta(minutes=1):  # change to 48 hours later
+
+            # ⭐ Mark match as EXPIRED
+            conn.execute("""
+                UPDATE matches
+                SET status='expired'
+                WHERE id=?
+            """, (m["id"],))
+
+            # 🚫 Prevent these two from matching again
+            conn.execute("""
+                INSERT INTO declined_pairs (mentor_id, mentee_id)
+                VALUES (?, ?)
+            """, (m["mentor_id"], m["mentee_id"]))
+
+            # 🔓 Restore hidden suggestions for both users
+            conn.execute("""
+                UPDATE matches
+                SET status='pending'
+                WHERE status='hidden'
+                AND (mentor_id=? OR mentee_id=?)
+            """, (m["mentor_id"], m["mentee_id"]))
 # ------------------------------------------------
 # MEETING SLOT STATUS TYPES
 # ------------------------------------------------
@@ -2224,4 +2297,4 @@ def clear_slots():
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    app.run(debug=True, threaded=True)
+    app.run(debug=True, threaded=False)
