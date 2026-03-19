@@ -628,6 +628,29 @@ def dashboard():
         current_date=date.today(),
         user_id=user_id,
     )
+@app.route("/save_meeting_notes/<int:slot_id>", methods=["POST"])
+def save_meeting_notes(slot_id):
+    if "user_id" not in session:
+        return redirect("/login")
+    
+    notes = request.form.get("notes")
+    user_id = session["user_id"]
+    profile = get_active_profile() # mentor or mentee
+    
+    conn = get_db()
+    
+    # Check if the user is the mentor or mentee for this specific slot
+    slot = conn.execute("SELECT * FROM meeting_slots WHERE id=?", (slot_id,)).fetchone()
+    match = conn.execute("SELECT * FROM matches WHERE id=?", (slot['match_id'],)).fetchone()
+    
+    if profile['role'] == "mentor" and match['mentor_id'] == user_id:
+        conn.execute("UPDATE meeting_slots SET mentor_notes=? WHERE id=?", (notes, slot_id))
+    elif profile['role'] == "mentee" and match['mentee_id'] == user_id:
+        conn.execute("UPDATE meeting_slots SET mentee_notes=? WHERE id=?", (notes, slot_id))
+    
+    conn.commit()
+    conn.close()
+    return redirect("/dashboard?tab=past")
 
 @app.route("/clear_notifications")
 def clear_notifications():

@@ -236,49 +236,89 @@
                         </div>
                     {% endif %}
 
-                    {% if request.args.get("tab") == "past" %}
-                    <div class="slot-box">
-                        {% for slot in past_meetings %}
-                        <div class="card mb-2 border meeting-item">
-                            <div class="card-body d-flex justify-content-between align-items-center py-2">
-                                <div>
-                                    <span class="fw-bold">{{slot.date}}</span> 
-                                    <small class="ms-2 text-muted">({{slot.start_time}})</small>
-                                    <i class="bi bi-chat-square-text ms-2 text-muted" title="Meeting Notes/Feedback" style="cursor:pointer;"></i>
-                                </div>
-                                
-                                <div class="d-flex align-items-center">
-                                    {% if slot.status == "completed" %}
-                                        <span class="badge bg-success badge-aston">Attended</span>
-                                    {% elif slot.status == "missed" %}
-                                        <span class="badge bg-danger badge-aston">Missed</span>
-                                    {% elif slot.status == "booked" %}
-                                        <span class="badge bg-warning text-dark badge-aston">Awaiting Action</span>
-                                    {% endif %}
+                        {% if request.args.get("tab") == "past" %}
+                        <div class="slot-box">
+                            {% for slot in past_meetings %}
+                            <div class="card mb-2 border meeting-item">
+                                <div class="card-body d-flex justify-content-between align-items-center py-2">
+                                    <div>
+                                        <span class="fw-bold">{{slot.date}}</span> 
+                                        <small class="ms-2 text-muted">({{slot.start_time}})</small>
+                                        
+                                        <i class="bi bi-chat-square-text ms-2 text-primary" 
+                                        title="View/Write Meeting Review" 
+                                        style="cursor:pointer;" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#notesModal{{slot.id}}"></i>
+                                    </div>
                                     
-                                    {% if user_id == match.mentor_id %}
-                                        <div class="ms-3">
-                                            {% if slot.status == "booked" %}
-                                                <a href="/mark_attended/{{slot.id}}?tab=past" class="btn btn-sm btn-success py-1">Attended</a>
-                                                <a href="/mark_missed/{{slot.id}}?tab=past" class="btn btn-sm btn-danger py-1">Missed</a>
-                                            {% else %}
-                                                <a href="/mark_meeting/{{slot.id}}/booked" class="btn btn-outline-secondary btn-sm" title="Undo Action">
-                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                    <div class="d-flex align-items-center">
+                                        {% if slot.status == "completed" %}
+                                            <span class="badge bg-success badge-aston">Attended</span>
+                                        {% elif slot.status == "missed" %}
+                                            <span class="badge bg-danger badge-aston">Missed</span>
+                                        {% elif slot.status == "booked" %}
+                                            <span class="badge bg-warning text-dark badge-aston">Awaiting Action</span>
+                                        {% endif %}
+                                        
+                                        {% if user_id == match.mentor_id %}
+                                            <div class="ms-3">
+                                                {% if slot.status == "booked" %}
+                                                    <a href="/mark_attended/{{slot.id}}?tab=past" class="btn btn-sm btn-success py-1">Attended</a>
+                                                    <a href="/mark_missed/{{slot.id}}?tab=past" class="btn btn-sm btn-danger py-1">Missed</a>
+                                                {% else %}
+                                                    <a href="/mark_meeting/{{slot.id}}/booked" class="btn btn-outline-secondary btn-sm" title="Undo Action">
+                                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                                    </a>
+                                                {% endif %}
+                                                <a href="/mentor_cancel_meeting/{{slot.id}}?tab=past" class="btn btn-link text-danger btn-sm p-0 ms-2" onclick="return confirm('Remove from history?')">
+                                                    <i class="bi bi-trash"></i>
                                                 </a>
-                                            {% endif %}
-                                            <a href="/mentor_cancel_meeting/{{slot.id}}?tab=past" class="btn btn-link text-danger btn-sm p-0 ms-2" onclick="return confirm('Remove from history?')" title="Delete from Record">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </div>
-                                    {% endif %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
+
+                            <div class="modal fade" id="notesModal{{slot.id}}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content" style="border-radius: 0; border-top: 5px solid var(--aston-navy);">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title fw-bold text-uppercase" style="font-size: 0.9rem;">Meeting Review: {{slot.date}}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <h6 class="fw-bold small text-muted text-uppercase mb-2">Previous Records:</h6>
+                                            <div class="mb-4">
+                                                <p class="p-2 bg-light border-start border-4 border-primary small mb-1">
+                                                    <strong>Mentor Note:</strong> {{ slot.mentor_notes or "No notes yet." }}
+                                                </p>
+                                                <p class="p-2 bg-light border-start border-4 border-danger small">
+                                                    <strong>Mentee Note:</strong> {{ slot.mentee_notes or "No notes yet." }}
+                                                </p>
+                                            </div>
+
+                                            <hr>
+
+                                            <h6 class="fw-bold small text-muted text-uppercase mb-2">Write Your {{ role.capitalize() }} Note:</h6>
+                                            <form action="/save_meeting_notes/{{slot.id}}" method="POST">
+                                                <textarea name="notes" class="form-control mb-3" rows="3" 
+                                                        placeholder="Type your notes about this meeting..." required>{{ slot.mentor_notes if role == 'mentor' else slot.mentee_notes }}</textarea>
+                                                <div class="text-end">
+                                                    <button type="submit" class="btn btn-aston-navy btn-sm">Save My Review</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+
+                            {% if not past_meetings %}
+                                <div class="text-center py-5 text-muted">No session history found</div>
+                            {% endif %}
                         </div>
-                        {% else %}
-                        <div class="text-center py-5 text-muted">No session history found</div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
+                        {% endif %}
 
                 </div>
             </div>
