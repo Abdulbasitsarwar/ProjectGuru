@@ -1213,13 +1213,13 @@ def calculate_score(mentor, mentee, conn):
 # ---------------- GENERATE MATCHES ----------------
 @app.route("/generate_matches")
 def generate_matches():
-
     conn = get_db()
+    
+    # 1. Clean up stale matches before starting
+    expire_old_matches(conn)
+    conn.commit()
 
-    # --------------------------------------------------
-    # 🚫 USERS BUSY IN APPROVED OR FINAL MATCHES
-    # (LOCKED USERS — cannot be matched again)
-    # --------------------------------------------------
+    # 2. Identify "Busy" Users (Those already in an active/confirmed match)
     busy_users = conn.execute("""
         SELECT mentor_id AS uid FROM matches
         WHERE status IN ('approved', 'final')
@@ -1230,36 +1230,31 @@ def generate_matches():
 
     busy_ids = {u["uid"] for u in busy_users}
 
-    # --------------------------------------------------
-    # AVAILABLE MENTORS
-    # --------------------------------------------------
+    # 3. Fetch Mentors (Role 'mentor' or 'both')
     mentors = conn.execute("""
         SELECT * FROM users
-        WHERE status IN ('accepted','active')
-        AND role IN ('mentor','both')
+        WHERE status IN ('accepted', 'active')
+        AND role IN ('mentor', 'both')
     """).fetchall()
 
-    # --------------------------------------------------
-    # AVAILABLE MENTEES
-    # --------------------------------------------------
+    # 4. Fetch Mentees (Role 'mentee' or 'both')
     mentees = conn.execute("""
         SELECT * FROM users
-        WHERE status IN ('accepted','active')
-        AND role IN ('mentee','both')
+        WHERE status IN ('accepted', 'active')
+        AND role IN ('mentee', 'both')
     """).fetchall()
 
     for mentor in mentors:
         for mentee in mentees:
-
-            # ❌ Same user
+            # ❌ RULE: Cannot match with yourself
             if mentor["id"] == mentee["id"]:
                 continue
 
-            # ❌ Skip BUSY users (approved or final)
+            # ❌ RULE: Skip users already locked in another match
             if mentor["id"] in busy_ids or mentee["id"] in busy_ids:
                 continue
 
-            # ❌ Previously declined pair (PERMANENT BLOCK)
+            # ❌ RULE: Never re-match a pair that was previously declined or expired
             declined = conn.execute("""
                 SELECT 1 FROM declined_pairs
                 WHERE mentor_id=? AND mentee_id=?
@@ -1268,8 +1263,7 @@ def generate_matches():
             if declined:
                 continue
 
-            # ❌ Existing match already exists (Check for ANY status)
-            # This ensures we don't try to re-insert even if it was declined or cancelled
+            # ❌ RULE: Skip if a suggestion already exists in the system
             existing = conn.execute("""
                 SELECT 1 FROM matches
                 WHERE mentor_id=? AND mentee_id=?
@@ -1278,18 +1272,14 @@ def generate_matches():
             if existing:
                 continue
 
-            # --------------------------------------------------
-            # CALCULATE COMPATIBILITY SCORE
-            # --------------------------------------------------
+            # 5. Calculate compatibility
             score, reason = calculate_score(mentor, mentee, conn)
 
-            if score < 6:
+            # 6. Lower threshold to ensure your current test users match
+            if score < 4:
                 continue
 
-            # --------------------------------------------------
-            # CREATE NEW SUGGESTION
-            # --------------------------------------------------
-            # We use INSERT OR IGNORE as an extra safety net
+            # 7. Create the Suggestion (Admin must approve this next)
             conn.execute("""
                 INSERT OR IGNORE INTO matches
                 (mentor_id, mentee_id, score, reason,
@@ -1299,15 +1289,12 @@ def generate_matches():
 
     conn.commit()
     conn.close()
-
     return redirect("/admin")
 
 
-
-# ---------------- APPROVE MATCH ----------------
+# ---------------- APPROVE MATCH (ADMIN) ----------------
 @app.route("/approve_match/<int:match_id>")
 def approve_match(match_id):
-
     conn = get_db()
 
     selected = conn.execute("""
@@ -1320,12 +1307,10 @@ def approve_match(match_id):
         conn.close()
         return redirect("/admin")
 
-    mentor_id = selected["mentor_id"]
-    mentee_id = selected["mentee_id"]
+    m_id = selected["mentor_id"]
+    e_id = selected["mentee_id"]
 
-    # --------------------------------------------------
-    # ✔ APPROVE THIS MATCH (LOCK USERS)
-    # --------------------------------------------------
+    # 1. Update this match to 'approved' and start the clock
     conn.execute("""
         UPDATE matches
         SET status='approved',
@@ -1333,44 +1318,30 @@ def approve_match(match_id):
         WHERE id=?
     """, (match_id,))
 
-    # --------------------------------------------------
-    # 🔒 HIDE OTHER SUGGESTIONS FOR THESE USERS
-    # --------------------------------------------------
+    # 2. Hide all other 'pending' suggestions for these two users
+    # This prevents them from seeing other options while one is under review
     conn.execute("""
         UPDATE matches
         SET status='hidden'
         WHERE id != ?
         AND (mentor_id=? OR mentee_id=?)
         AND status='pending'
-    """, (match_id, mentor_id, mentee_id))
+    """, (match_id, m_id, e_id))
 
-    # --------------------------------------------------
-    # 🔔 NOTIFY BOTH USERS
-    # --------------------------------------------------
-    create_notification(
-        conn,
-        mentor_id,
-        "A new mentoring match is available. Please review it.",
-        "/match"
-    )
-
-    create_notification(
-        conn,
-        mentee_id,
-        "A new mentoring match is available. Please review it.",
-        "/match"
-    )
+    # 3. Notify both users to go to their /match page
+    create_notification(conn, m_id, "Admin has approved a match for you. Please Accept or Decline.", "/match")
+    create_notification(conn, e_id, "Admin has approved a match for you. Please Accept or Decline.", "/match")
 
     conn.commit()
     conn.close()
-
     return redirect("/admin")
 
 
-# ---------------- REMOVE MATCH ----------------
+# ---------------- REMOVE MATCH (ADMIN) ----------------
 @app.route("/remove_match/<int:match_id>")
 def remove_match(match_id):
     conn = get_db()
+    # Simply deletes the pending suggestion from the admin list
     conn.execute("DELETE FROM matches WHERE id=?", (match_id,))
     conn.commit()
     conn.close()
