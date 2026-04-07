@@ -1083,132 +1083,60 @@ def remove_user(user_id):
 
 # ---------------- SCORING FUNCTION ----------------
 def calculate_score(mentor, mentee, conn):
-
     score = 0
     reasons = []
 
-    # ---------------- SUPPORT AREA (MANDATORY) ----------------
-    mentor_help = conn.execute(
-        "SELECT help_areas FROM questionnaires WHERE user_id=?",
-        (mentor["id"],)
-    ).fetchone()
+    # 1. HELP AREAS (Mandatory Overlap)
+    mentor_data = conn.execute("SELECT help_areas FROM questionnaires WHERE user_id=?", (mentor["id"],)).fetchone()
+    mentee_data = conn.execute("SELECT help_areas FROM questionnaires WHERE user_id=?", (mentee["id"],)).fetchone()
 
-    mentee_help = conn.execute(
-        "SELECT help_areas FROM questionnaires WHERE user_id=?",
-        (mentee["id"],)
-    ).fetchone()
+    if not mentor_data or not mentee_data:
+        return 0, "Missing questionnaire"
 
-    if not mentor_help or not mentee_help:
-        return 0, "Missing questionnaire data"
+    m_set = set(mentor_data["help_areas"].lower().split(", "))
+    e_set = set(mentee_data["help_areas"].lower().split(", "))
+    common = m_set & e_set
 
-    mentor_set = set(mentor_help["help_areas"].split(", "))
-    mentee_set = set(mentee_help["help_areas"].split(", "))
-
-    common = mentor_set & mentee_set
-
-    # MUST MATCH
     if not common:
-        return 0, "No common support area"
+        return 0, "No shared support areas"
+    
+    score += (len(common) * 2) 
+    reasons.append(f"Shared: {', '.join(common)}")
 
-    # ⭐ Score based on overlap
-    overlap = len(common)
-    if overlap == 1:
-        score += 2
-    elif overlap == 2:
-        score += 3
-    else:
-        score += 4
+    # 2. DOMAIN CHECK (Flexible Business/Computer Science Groups)
+    groups = [{"business", "accounting"}, {"computer science", "cybersecurity"}]
+    m_dom = mentor["domain"].lower()
+    e_dom = mentee["domain"].lower()
+    
+    match_group = False
+    for g in groups:
+        if m_dom in g and e_dom in g:
+            match_group = True
+    
+    if not match_group and m_dom != e_dom:
+        return 0, f"Domain mismatch ({m_dom} vs {e_dom})"
+    
+    score += 2 if m_dom == e_dom else 1
+    reasons.append("Compatible Domain")
 
-    reasons.append(f"{overlap} shared support area(s)")
+    # 3. EXPERIENCE CHECK (Mentor must be >= Mentee)
+    exp_map = {"0 to 1 years": 1, "1 to 3 years": 2, "3 to 5 years": 3, "5 to 7 years": 4, "7 to 10 years": 5, "10+ years": 6}
+    m_exp = exp_map.get(mentor["experience"].lower(), 0)
+    e_exp = exp_map.get(mentee["experience"].lower(), 0)
 
-    # ---------------- DOMAIN (GROUP CHECK) ----------------
-
-    domain_groups = [
-        {"Computer Science", "Cybersecurity"},
-        {"Business", "Accounting"},
-        {"Medicine", "Psychology", "Optometry"},
-        {"Law"},
-        {"Engineering"},
-        {"Other"}
-    ]
-
-    def same_group(d1, d2):
-        for g in domain_groups:
-            if d1 in g and d2 in g:
-                return True
-        return False
-
-    if not same_group(mentor["domain"], mentee["domain"]):
-        return 0, "Incompatible domain"
-
-    # Exact domain bonus
-    if mentor["domain"] == mentee["domain"]:
-        score += 2
-        reasons.append("Same domain (+2)")
-
-    # ---------------- EXPERIENCE ----------------
-    exp_map = {
-        "0-1": 1,
-        "1-3": 2,
-        "3-5": 3,
-        "5-7": 4,
-        "7-10": 5,
-        "10+": 6
-    }
-
-    mentor_exp = exp_map.get(mentor["experience"], 0)
-    mentee_exp = exp_map.get(mentee["experience"], 0)
-
-    if mentor_exp < mentee_exp:
+    if m_exp < e_exp:
         return 0, "Mentor less experienced"
+    
+    score += (m_exp - e_exp) + 1
+    reasons.append("Experience Valid")
 
-    diff = mentor_exp - mentee_exp
-
-    if diff == 0:
+    # 4. AVAILABILITY & LOCATION
+    if mentor["availability"] == mentee["availability"] or mentor["availability"] == "both":
         score += 1
-        reasons.append("Equal experience (+1)")
-    elif diff <= 2:
-        score += 2
-        reasons.append("Mentor slightly more experienced (+2)")
-    else:
-        score += 3
-        reasons.append("Mentor much more experienced (+3)")
-
-    # ---------------- AVAILABILITY ----------------
-    if (
-        mentor["availability"] == mentee["availability"]
-        or mentor["availability"] == "both"
-        or mentee["availability"] == "both"
-    ):
+    if mentor["location"] == mentee["location"] or mentor["location"] == "flexible":
         score += 1
-        reasons.append("Availability compatible (+1)")
-    else:
-        return 0, "Availability mismatch"
 
-    # ---------------- LOCATION ----------------
-    if (
-        mentor["location"] == mentee["location"]
-        or mentor["location"] == "flexible"
-        or mentee["location"] == "flexible"
-    ):
-        score += 1
-        reasons.append("Location compatible (+1)")
-    else:
-        return 0, "Location mismatch"
-
-    # ---------------- BONUS ----------------
-    if (
-        mentor["domain"] == mentee["domain"]
-        and mentor["availability"] == mentee["availability"]
-        and mentor["location"] == mentee["location"]
-    ):
-        score += 1
-        reasons.append("Perfect alignment (+1)")
-
-    if score > 10:
-        score = 10
-
-    return score, ", ".join(reasons)
+    return min(score, 10), ", ".join(reasons)
 
 # ---------------- GENERATE MATCHES ----------------
 @app.route("/generate_matches")
@@ -1276,7 +1204,7 @@ def generate_matches():
             score, reason = calculate_score(mentor, mentee, conn)
 
             # 6. Lower threshold to ensure your current test users match
-            if score < 4:
+            if score < 3:
                 continue
 
             # 7. Create the Suggestion (Admin must approve this next)
