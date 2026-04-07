@@ -530,9 +530,15 @@ def dashboard():
         return redirect("/login")
 
     conn = get_db()
-    # If expire_old_matches is not defined yet, comment this out or ensure it exists
-    # expire_old_matches(conn) 
-    # conn.commit()
+
+    # =====================================================
+    # 🔥 THE FINAL STEP: TRIGGER EXPIRATION CHECK
+    # This automatically clears matches that passed your 
+    # minute-based limit every time a user logs in or 
+    # refreshes their dashboard.
+    # =====================================================
+    expire_old_matches(conn) 
+    conn.commit()
 
     user = conn.execute("SELECT * FROM users WHERE id=?", (session["user_id"],)).fetchone()
 
@@ -558,7 +564,7 @@ def dashboard():
     match = next((m for m in matches if m["status"] == "final"), None)
 
     # =================================================
-    # 🔥 UPDATED MEETING SYSTEM (FILTERING PAST SLOTS)
+    # 📅 MEETING SYSTEM (FILTERING PAST SLOTS)
     # =================================================
     slots = []
     upcoming_meetings = []
@@ -575,21 +581,14 @@ def dashboard():
         for slot in all_slots:
             slot_dt = datetime.strptime(f"{slot['date']} {slot['start_time']}", "%Y-%m-%d %H:%M")
 
-            # 1. Logic for 'available' slots: Only show if they are in the future
             if slot["status"] == "available":
                 if slot_dt > now:
                     slots.append(slot)
-                # Past unbooked slots are simply ignored (they won't show anywhere)
-
-            # 2. Logic for 'booked' slots: Sort into upcoming or past history
             elif slot["status"] == "booked":
                 if slot_dt > now:
                     upcoming_meetings.append(slot)
                 else:
-                    # Move to history so mentor can mark attendance
                     past_meetings.append(slot)
-
-            # 3. Logic for processed slots: Always show in history
             elif slot["status"] in ["completed", "missed"]:
                 past_meetings.append(slot)
 
@@ -628,6 +627,7 @@ def dashboard():
         current_date=date.today(),
         user_id=user_id,
     )
+    
 @app.route("/save_meeting_notes/<int:slot_id>", methods=["POST"])
 def save_meeting_notes(slot_id):
     if "user_id" not in session:
@@ -874,12 +874,18 @@ def admin():
     conn = get_db()
 
     # =====================================================
-    # 🔎 USER SEARCH / FILTER (UNCHANGED)
+    # 🔥 THE FINAL STEP: TRIGGER EXPIRATION CHECK
+    # This runs every time you refresh the admin page
+    # =====================================================
+    expire_old_matches(conn)
+    conn.commit()
+
+    # =====================================================
+    # 🔎 USER SEARCH / FILTER
     # =====================================================
     search = request.args.get("search", "").strip()
 
     if search:
-
         users = conn.execute("""
             SELECT u.*, 
                    COALESCE(q.help_areas, 'Not filled') AS help_areas
@@ -890,15 +896,8 @@ def admin():
                 OR u.id LIKE ?
                 OR u.status LIKE ?
                 OR u.is_verified LIKE ?
-        """, (
-            f"%{search}%",
-            f"%{search}%",
-            f"%{search}%",
-            f"%{search}%"
-        )).fetchall()
-
+        """, (f"%{search}%", f"%{search}%", f"%{search}%", f"%{search}%")).fetchall()
     else:
-
         users = conn.execute("""
             SELECT u.*,
                    COALESCE(q.help_areas, 'Not filled') AS help_areas
@@ -907,71 +906,52 @@ def admin():
         """).fetchall()
 
     # =====================================================
-    # 🔎 MATCH SEARCH / FILTER — ✅ FULLY FIXED
+    # 🔎 MATCH SEARCH / FILTER
     # =====================================================
     match_search = request.args.get("match_search", "").strip()
 
     if match_search:
-
         matches = conn.execute("""
             SELECT m.*,
                    u1.email AS mentor_email,
                    u2.email AS mentee_email
             FROM matches m
-
             JOIN users u1 ON m.mentor_id = u1.id
             JOIN users u2 ON m.mentee_id = u2.id
-
-            WHERE
-                u1.email LIKE ?
-                OR u2.email LIKE ?
-
+            WHERE u1.email LIKE ? OR u2.email LIKE ?
             ORDER BY
-                CASE WHEN m.status = 'final' THEN 0 ELSE 1 END,
+                CASE WHEN m.status = 'final' THEN 0 
+                     WHEN m.status = 'approved' THEN 1 
+                     ELSE 2 END,
                 m.created_at DESC
-        """, (
-            f"%{match_search}%",
-            f"%{match_search}%"
-        )).fetchall()
-
+        """, (f"%{match_search}%", f"%{match_search}%")).fetchall()
     else:
-
         matches = conn.execute("""
             SELECT m.*,
                    u1.email AS mentor_email,
                    u2.email AS mentee_email
             FROM matches m
-
             JOIN users u1 ON m.mentor_id = u1.id
             JOIN users u2 ON m.mentee_id = u2.id
-
             ORDER BY
-                CASE WHEN m.status = 'final' THEN 0 ELSE 1 END,
+                CASE WHEN m.status = 'final' THEN 0 
+                     WHEN m.status = 'approved' THEN 1 
+                     ELSE 2 END,
                 m.created_at DESC
         """).fetchall()
 
     # =====================================================
-    # 📊 STATS (UNCHANGED)
+    # 📊 STATS & SETTINGS
     # =====================================================
-    total_users = conn.execute(
-        "SELECT COUNT(*) FROM users"
-    ).fetchone()[0]
+    # Get current expiry limit to show in the UI
+    expiry_setting = conn.execute("SELECT value FROM settings WHERE key='match_expiry_hours'").fetchone()
+    current_expiry = expiry_setting["value"] if expiry_setting else "48"
 
-    pending_users = conn.execute(
-        "SELECT COUNT(*) FROM users WHERE status='pending'"
-    ).fetchone()[0]
-
-    approved_users = conn.execute(
-        "SELECT COUNT(*) FROM users WHERE status='accepted'"
-    ).fetchone()[0]
-
-    total_matches = conn.execute(
-        "SELECT COUNT(*) FROM matches"
-    ).fetchone()[0]
-
-    final_matches = conn.execute(
-        "SELECT COUNT(*) FROM matches WHERE status='final'"
-    ).fetchone()[0]
+    total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    pending_users = conn.execute("SELECT COUNT(*) FROM users WHERE status='pending'").fetchone()[0]
+    approved_users = conn.execute("SELECT COUNT(*) FROM users WHERE status='accepted'").fetchone()[0]
+    total_matches = conn.execute("SELECT COUNT(*) FROM matches").fetchone()[0]
+    final_matches = conn.execute("SELECT COUNT(*) FROM matches WHERE status='final'").fetchone()[0]
 
     success_rate = 0
     if total_matches > 0:
@@ -988,7 +968,8 @@ def admin():
         approved_users=approved_users,
         success_rate=success_rate,
         search=search,
-        match_search=match_search
+        match_search=match_search,
+        current_expiry=current_expiry  # Pass this to your template
     )
 
 @app.route("/approve_user/<int:user_id>")
@@ -2228,17 +2209,16 @@ def clear_slots():
     return "All meeting slots deleted"
 
 def expire_old_matches(conn):
-
-    # 🔥 Get expiry hours from settings table
+    # 1. Get the current limit from the settings table
     setting = conn.execute("""
         SELECT value FROM settings
         WHERE key='match_expiry_hours'
     """).fetchone()
 
-    # Default = 48 hours if not set
-    expiry_hours = int(setting["value"]) if setting else 48
+    # Default to 48 if no setting is found in the database
+    expiry_limit = int(setting["value"]) if setting else 48
 
-
+    # 2. Find all matches approved by admin that haven't been finalized yet
     expired = conn.execute("""
         SELECT id, mentor_id, mentee_id, created_at
         FROM matches
@@ -2247,54 +2227,50 @@ def expire_old_matches(conn):
     """).fetchall()
 
     for m in expired:
+        # Convert the stored database time string into a Python time object
+        created = datetime.strptime(m["created_at"], "%Y-%m-%d %H:%M:%S")
 
-        created = datetime.strptime(
-            m["created_at"],
-            "%Y-%m-%d %H:%M:%S"
-        )
+        # ⭐ TESTING MODE: Changed 'hours=expiry_limit' to 'minutes=expiry_limit'
+        if datetime.now() - created > timedelta(minutes=expiry_limit):
+            
+            # Mark the match as expired so it disappears from the user's view
+            conn.execute("UPDATE matches SET status='expired' WHERE id=?", (m["id"],))
 
-        # ⭐ ONLY CHANGE: minutes → hours from admin
-        if datetime.now() - created > timedelta(hours=expiry_hours):
-
-            # ⭐ Mark match as EXPIRED
+            # Block these two users from being suggested together again
             conn.execute("""
-                UPDATE matches
-                SET status='expired'
-                WHERE id=?
-            """, (m["id"],))
-
-            # 🚫 Prevent these two from matching again
-            conn.execute("""
-                INSERT INTO declined_pairs (mentor_id, mentee_id)
+                INSERT OR IGNORE INTO declined_pairs (mentor_id, mentee_id)
                 VALUES (?, ?)
             """, (m["mentor_id"], m["mentee_id"]))
 
-            # 🔓 Restore hidden suggestions for both users
+            # Unhide other pending matches for these users so they can find someone else
             conn.execute("""
-                UPDATE matches
-                SET status='pending'
-                WHERE status='hidden'
-                AND (mentor_id=? OR mentee_id=?)
+                UPDATE matches SET status='pending'
+                WHERE status='hidden' AND (mentor_id=? OR mentee_id=?)
             """, (m["mentor_id"], m["mentee_id"]))
             
 @app.route("/update_expiry", methods=["POST"])
 def update_expiry():
-
     if not session.get("admin_logged_in"):
         return redirect("/admin_login")
 
-    hours = request.form.get("hours")
+    # This pulls the number you typed into the input field
+    duration = request.form.get("hours")
+
+    if not duration:
+        return "Please enter a valid number"
 
     conn = get_db()
-
+    
+    # This ensures the setting is UPDATED if it exists, or CREATED if it doesn't
     conn.execute("""
         INSERT OR REPLACE INTO settings (key, value)
         VALUES ('match_expiry_hours', ?)
-    """, (hours,))
+    """, (duration,))
 
     conn.commit()
     conn.close()
 
+    # Return to admin page to see the change
     return redirect("/admin")
 # ------------------------------------------------
 # MEETING SLOT STATUS TYPES
