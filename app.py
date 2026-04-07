@@ -1235,7 +1235,7 @@ def generate_matches():
     # --------------------------------------------------
     mentors = conn.execute("""
         SELECT * FROM users
-        WHERE status='accepted'
+        WHERE status IN ('accepted','active')
         AND role IN ('mentor','both')
     """).fetchall()
 
@@ -1244,7 +1244,7 @@ def generate_matches():
     # --------------------------------------------------
     mentees = conn.execute("""
         SELECT * FROM users
-        WHERE status='accepted'
+        WHERE status IN ('accepted','active')
         AND role IN ('mentee','both')
     """).fetchall()
 
@@ -1268,11 +1268,11 @@ def generate_matches():
             if declined:
                 continue
 
-            # ❌ Existing match already exists
+            # ❌ Existing match already exists (Check for ANY status)
+            # This ensures we don't try to re-insert even if it was declined or cancelled
             existing = conn.execute("""
                 SELECT 1 FROM matches
                 WHERE mentor_id=? AND mentee_id=?
-                AND status NOT IN ('declined', 'cancelled')
             """, (mentor["id"], mentee["id"])).fetchone()
 
             if existing:
@@ -1289,8 +1289,9 @@ def generate_matches():
             # --------------------------------------------------
             # CREATE NEW SUGGESTION
             # --------------------------------------------------
+            # We use INSERT OR IGNORE as an extra safety net
             conn.execute("""
-                INSERT INTO matches
+                INSERT OR IGNORE INTO matches
                 (mentor_id, mentee_id, score, reason,
                  status, mentor_response, mentee_response)
                 VALUES (?, ?, ?, ?, 'pending', 'pending', 'pending')

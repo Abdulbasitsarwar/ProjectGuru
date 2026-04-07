@@ -47,7 +47,9 @@ CREATE TABLE IF NOT EXISTS matches (
     reason TEXT,
     status TEXT DEFAULT 'pending',
     mentor_response TEXT DEFAULT 'pending',
-    mentee_response TEXT DEFAULT 'pending'
+    mentee_response TEXT DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(mentor_id, mentee_id)
 )
 """)
 
