@@ -23,7 +23,6 @@
             color: var(--aston-dark-grey);
         }
 
-        /* --- PAGE TITLE --- */
         h2 {
             color: var(--aston-navy);
             font-weight: 700;
@@ -42,7 +41,6 @@
             margin-right: 12px;
         }
 
-        /* --- PROFESSIONAL ROLE BANNER --- */
         .role-banner {
             background-color: white;
             border-left: 8px solid var(--aston-navy);
@@ -71,14 +69,6 @@
             margin: 0;
         }
 
-        .role-partner {
-            background: var(--aston-grey);
-            padding: 10px 20px;
-            border: 1px solid #eee;
-            font-size: 0.9rem;
-        }
-
-        /* --- CARDS & ALERTS --- */
         .match-card {
             background: white;
             border: none;
@@ -99,16 +89,11 @@
         .alert-success { border-left-color: #198754; background-color: #e8f5e9; color: #1b5e20; }
         .alert-warning { border-left-color: #ffc107; background-color: #fff9c4; color: #856404; }
 
-        .info-label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #666;
-            text-transform: uppercase;
-            display: block;
-        }
-
         .btn-aston-navy { background-color: var(--aston-navy); color: white; border: none; border-radius: 0; font-weight: 700; text-transform: uppercase;}
         .btn-aston-navy:hover { background-color: #001a33; color: white; }
+        
+        .partner-detail-label { font-size: 0.75rem; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 2px; }
+        .partner-detail-value { font-weight: 700; color: var(--aston-navy); margin-bottom: 15px; }
     </style>
 </head>
 
@@ -121,17 +106,66 @@
 
     {% if match %}
 
-        {# --- PENDING MATCH LOGIC --- #}
+        {# --- PENDING MATCH LOGIC (APPROVED BY ADMIN, WAITING FOR USERS) --- #}
         {% if match.status == "approved" %}
             <div class="alert alert-warning shadow-sm mb-4">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> ACTION REQUIRED: Please review the proposed match details below.
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> ACTION REQUIRED: Please review the proposed partner below.
             </div>
-            {# ... (keeping existing response logic here) ... #}
+
+            <div class="card match-card p-5 mb-4">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h4 class="fw-bold mb-4" style="color: var(--aston-navy);">Proposed Partner Details</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="partner-detail-label">University Email</p>
+                                <p class="partner-detail-value">{% if role == 'mentor' %}{{ mentee.email }}{% else %}{{ mentor.email }}{% endif %}</p>
+                                
+                                <p class="partner-detail-label">Domain/Subject</p>
+                                <p class="partner-detail-value">{% if role == 'mentor' %}{{ mentee.domain }}{% else %}{{ mentor.domain }}{% endif %}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="partner-detail-label">Experience/Level</p>
+                                <p class="partner-detail-value">{% if role == 'mentor' %}{{ mentee.level }}{% else %}{{ mentor.experience }}{% endif %}</p>
+
+                                <p class="partner-detail-label">Shared Support Areas</p>
+                                <p class="partner-detail-value">
+                                    {% if role == 'mentor' %}{{ mentee_q.help_areas }}{% else %}{{ mentor_q.help_areas }}{% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 p-3 bg-light border-start border-4 border-warning">
+                            <h6 class="fw-bold text-uppercase small">Why this match?</h6>
+                            <p class="small mb-0">{{ match.reason }}</p>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 border-start text-center d-flex flex-column justify-content-center">
+                        <h5 class="fw-bold text-uppercase small text-muted">Match Strength</h5>
+                        <div class="fw-bold" style="font-size: 4rem; color: var(--aston-navy);">
+                            {{ match.score }}<span style="font-size: 1.5rem; opacity: 0.5;">/10</span>
+                        </div>
+
+                        <div class="mt-4">
+                            {# ACCEPT LOGIC #}
+                            {% if (role == 'mentor' and match.mentor_response == 'pending') or (role == 'mentee' and match.mentee_response == 'pending') %}
+                                <a href="/accept_match/{{ match.id }}" class="btn btn-success w-100 mb-2 py-3 fw-bold">ACCEPT MATCH</a>
+                                <a href="/decline_match/{{ match.id }}" class="btn btn-danger w-100 py-2 fw-bold small">DECLINE</a>
+                            {% else %}
+                                <div class="badge bg-success p-3 w-100 mb-2">YOU HAVE ACCEPTED</div>
+                                <p class="small text-muted">Waiting for partner's response...</p>
+                                <a href="/cancel_accept/{{ match.id }}" class="btn btn-link btn-sm text-decoration-none text-danger">Cancel Acceptance</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
         {% endif %}
 
         {# --- FINALIZED MATCH LOGIC --- #}
         {% if match.status == "final" %}
-            
             <div class="alert alert-success shadow-sm mb-4">
                 <i class="bi bi-patch-check-fill me-2"></i> MATCH CONFIRMED: Administrative processing complete.
             </div>
@@ -146,7 +180,7 @@
                     {% endif %}
                 </div>
                 <div class="role-partner text-end">
-                    <span class="info-label">Assigned Partner</span>
+                    <span class="role-text-primary">Assigned Partner</span>
                     <span class="fw-bold">
                         {% if user_id == match.mentor_id %}{{ mentee.email }}{% else %}{{ mentor.email }}{% endif %}
                     </span>
@@ -175,7 +209,7 @@
                         </div>
                     </div>
                     <div class="col-md-8">
-                        <div class="p-4 bg-light border-start border-4 border-navy">
+                        <div class="p-4 bg-light border-start border-4" style="border-color: var(--aston-navy) !important;">
                             <h6 class="fw-bold text-uppercase small">Algorithmic Justification</h6>
                             <p class="text-muted mb-0 small" style="line-height: 1.6;">{{ match.reason }}</p>
                         </div>

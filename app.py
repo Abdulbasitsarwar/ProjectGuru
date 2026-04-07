@@ -1278,7 +1278,6 @@ def remove_match(match_id):
 # ---------------- MY MATCH PAGE ----------------
 @app.route("/match")
 def my_match():
-
     if "user_id" not in session:
         return redirect("/login")
 
@@ -1289,65 +1288,46 @@ def my_match():
         return redirect("/dashboard")
 
     role = profile["role"]   # mentor OR mentee
-
     conn = get_db()
     user_id = session["user_id"]
 
     # ====================================================
     # 🔥 GET MATCH BASED ON ACTIVE ROLE ONLY
     # ====================================================
-
     if role == "mentor":
         match = conn.execute("""
-            SELECT *
-            FROM matches
-            WHERE mentor_id=?
-            AND status IN ('approved', 'final')
+            SELECT * FROM matches
+            WHERE mentor_id=? AND status IN ('approved', 'final')
             ORDER BY id DESC
         """, (user_id,)).fetchone()
-
     else:  # mentee
         match = conn.execute("""
-            SELECT *
-            FROM matches
-            WHERE mentee_id=?
-            AND status IN ('approved', 'final')
+            SELECT * FROM matches
+            WHERE mentee_id=? AND status IN ('approved', 'final')
             ORDER BY id DESC
         """, (user_id,)).fetchone()
 
     mentor = None
     mentee = None
+    mentor_q = None
+    mentee_q = None
 
     if match:
-        mentor = conn.execute(
-            "SELECT * FROM users WHERE id=?",
-            (match["mentor_id"],)
-        ).fetchone()
-
-        mentee = conn.execute(
-            "SELECT * FROM users WHERE id=?",
-            (match["mentee_id"],)
-        ).fetchone()
+        # Fetch User Account Details
+        mentor = conn.execute("SELECT * FROM users WHERE id=?", (match["mentor_id"],)).fetchone()
+        mentee = conn.execute("SELECT * FROM users WHERE id=?", (match["mentee_id"],)).fetchone()
+        
+        # Fetch Questionnaire Data (to show help areas/expertise)
+        mentor_q = conn.execute("SELECT * FROM questionnaires WHERE user_id=?", (match["mentor_id"],)).fetchone()
+        mentee_q = conn.execute("SELECT * FROM questionnaires WHERE user_id=?", (match["mentee_id"],)).fetchone()
 
     # ====================================================
-    # 🔥 FINAL MATCHES (for navbar chat link) — ROLE AWARE
+    # 🔥 FINAL MATCHES (for navbar chat link)
     # ====================================================
-
-    if role == "mentor":
-        matches = conn.execute("""
-            SELECT *
-            FROM matches
-            WHERE mentor_id=?
-            AND status='final'
-        """, (user_id,)).fetchall()
-
-    else:
-        matches = conn.execute("""
-            SELECT *
-            FROM matches
-            WHERE mentee_id=?
-            AND status='final'
-        """, (user_id,)).fetchall()
+    matches = conn.execute("""
+        SELECT * FROM matches 
+        WHERE (mentor_id=? OR mentee_id=?) AND status='final'
+    """, (user_id, user_id)).fetchall()
 
     conn.close()
 
@@ -1356,6 +1336,8 @@ def my_match():
         match=match,
         mentor=mentor,
         mentee=mentee,
+        mentor_q=mentor_q,
+        mentee_q=mentee_q,
         matches=matches,
         role=role,
         user_id=user_id
@@ -1366,19 +1348,23 @@ def my_match():
 def match_details(match_id):
     conn = get_db()
 
+    # Joined query to get emails and details in one go
     match = conn.execute("""
-        SELECT m.*,
-               u1.email AS mentor_email,
-               u2.email AS mentee_email
+        SELECT m.*, 
+               u1.email AS mentor_email, u1.domain AS mentor_domain, u1.experience AS mentor_exp,
+               u2.email AS mentee_email, u2.domain AS mentee_domain, u2.level AS mentee_level,
+               q1.help_areas AS mentor_help, q2.help_areas AS mentee_help
         FROM matches m
         JOIN users u1 ON m.mentor_id = u1.id
         JOIN users u2 ON m.mentee_id = u2.id
+        LEFT JOIN questionnaires q1 ON m.mentor_id = q1.user_id
+        LEFT JOIN questionnaires q2 ON m.mentee_id = q2.user_id
         WHERE m.id=?
     """, (match_id,)).fetchone()
 
     conn.close()
-
     return render_template("match_details.html", match=match)
+
 # ---------------- CHAT HOME ----------------
 @app.route("/chat")
 def chat_home():
