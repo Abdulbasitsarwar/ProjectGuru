@@ -66,4 +66,4 @@ def seed_database():
     print("✅ Successfully injected 3 Mentors and 3 Mentees!")
 
 if __name__ == "__main__":
-    seed_database() 
+    seed_database()  

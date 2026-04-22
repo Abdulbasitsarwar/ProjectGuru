@@ -905,8 +905,8 @@ def admin():
             LEFT JOIN questionnaires q ON u.id = q.user_id
             """).fetchall()
 
-    # =====================================================
-        # 🔎 MATCH SEARCH / FILTER
+# =====================================================
+    # 🔎 MATCH SEARCH / FILTER
     # =====================================================
     match_search = request.args.get("match_search", "").strip()
 
@@ -919,7 +919,7 @@ def admin():
             JOIN users u1 ON m.mentor_id = u1.id
             JOIN users u2 ON m.mentee_id = u2.id
             WHERE (u1.email LIKE ? OR u2.email LIKE ?)
-            AND m.status != 'hidden'  <-- THIS IS THE FIX
+            AND m.status != 'hidden'
             ORDER BY
                 CASE WHEN m.status = 'final' THEN 0 
                      WHEN m.status = 'approved' THEN 1 
@@ -934,7 +934,7 @@ def admin():
             FROM matches m
             JOIN users u1 ON m.mentor_id = u1.id
             JOIN users u2 ON m.mentee_id = u2.id
-            WHERE m.status != 'hidden'  <-- THIS IS THE FIX
+            WHERE m.status != 'hidden'
             ORDER BY
                 CASE WHEN m.status = 'final' THEN 0 
                      WHEN m.status = 'approved' THEN 1 
@@ -1229,17 +1229,17 @@ def approve_match(match_id):
         WHERE id=?
     """, (match_id,))
 
-    # 2. Hide all other 'pending' suggestions for these two users
-    # This prevents them from seeing other options while one is under review
+    # 2. BULLETPROOF HIDE: Hide all other 'pending' suggestions involving EITHER user
+    # Using 'IN (?, ?)' guarantees we catch them whether they are listed as mentor or mentee!
     conn.execute("""
         UPDATE matches
         SET status='hidden'
         WHERE id != ?
-        AND (mentor_id=? OR mentee_id=?)
         AND status='pending'
-    """, (match_id, m_id, e_id))
+        AND (mentor_id IN (?, ?) OR mentee_id IN (?, ?))
+    """, (match_id, m_id, e_id, m_id, e_id))
 
-    # 3. Notify both users to go to their /match page
+    # 3. Notify both users
     create_notification(conn, m_id, "Admin has approved a match for you. Please Accept or Decline.", "/match")
     create_notification(conn, e_id, "Admin has approved a match for you. Please Accept or Decline.", "/match")
 
