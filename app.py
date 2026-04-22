@@ -903,10 +903,10 @@ def admin():
                    COALESCE(q.help_areas, 'Not filled') AS help_areas
             FROM users u
             LEFT JOIN questionnaires q ON u.id = q.user_id
-        """).fetchall()
+            """).fetchall()
 
     # =====================================================
-    # 🔎 MATCH SEARCH / FILTER
+        # 🔎 MATCH SEARCH / FILTER
     # =====================================================
     match_search = request.args.get("match_search", "").strip()
 
@@ -918,7 +918,8 @@ def admin():
             FROM matches m
             JOIN users u1 ON m.mentor_id = u1.id
             JOIN users u2 ON m.mentee_id = u2.id
-            WHERE u1.email LIKE ? OR u2.email LIKE ?
+            WHERE (u1.email LIKE ? OR u2.email LIKE ?)
+            AND m.status != 'hidden'  <-- THIS IS THE FIX
             ORDER BY
                 CASE WHEN m.status = 'final' THEN 0 
                      WHEN m.status = 'approved' THEN 1 
@@ -933,13 +934,14 @@ def admin():
             FROM matches m
             JOIN users u1 ON m.mentor_id = u1.id
             JOIN users u2 ON m.mentee_id = u2.id
+            WHERE m.status != 'hidden'  <-- THIS IS THE FIX
             ORDER BY
                 CASE WHEN m.status = 'final' THEN 0 
                      WHEN m.status = 'approved' THEN 1 
                      ELSE 2 END,
                 m.created_at DESC
         """).fetchall()
-
+        
     # =====================================================
     # 📊 STATS & SETTINGS
     # =====================================================

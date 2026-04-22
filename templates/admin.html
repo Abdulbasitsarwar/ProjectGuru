@@ -199,14 +199,21 @@
             </div>
         </div>
     </div>
-
-    <div class="section-container mb-4">
-        <h4 class="section-title">System Settings</h4>
-        <form action="/update_expiry" method="POST" class="d-flex align-items-center gap-3">
-            <label class="fw-bold mb-0">Match Expiry (hours):</label>
-            <input type="number" name="hours" min="1" value="48" class="form-control w-auto" required>
-            <button class="btn btn-aston-red">Save</button>
+ 
+    <div class="card p-4 mb-4">
+        <h5>System Settings</h5>
+        <form action="/update_expiry" method="POST" class="row g-3">
+            <div class="col-auto">
+                <label class="form-label fw-bold">Match Expiry (Testing in Minutes):</label>
+                <input type="number" name="hours" class="form-control" value="{{ current_expiry }}" required>
+            </div>
+            <div class="col-auto d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
         </form>
+        <p class="text-muted mt-2 small">
+            Current setting: <strong>{{ current_expiry }} minutes</strong>
+        </p>
     </div>
 
     <div class="section-container">
