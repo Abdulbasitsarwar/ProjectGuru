@@ -2,7 +2,7 @@ import sqlite3
 
 conn = sqlite3.connect("database.db")
 
-# Add new columns safely
+
 try:
     conn.execute("ALTER TABLE users ADD COLUMN verification_code TEXT")
     print("verification_code column added")

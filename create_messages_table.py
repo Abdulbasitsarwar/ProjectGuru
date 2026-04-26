@@ -16,5 +16,5 @@ CREATE TABLE IF NOT EXISTS messages (
 conn.commit()
 conn.close()
 
-print("✅ Messages table created successfully")
+print(" Messages table created successfully")
 

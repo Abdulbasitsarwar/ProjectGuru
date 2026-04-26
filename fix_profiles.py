@@ -10,4 +10,4 @@ c.execute("INSERT INTO profiles (user_id, role) VALUES (43, 'mentee')")
 conn.commit()
 conn.close()
 
-print("✅ Profiles added successfully")
+print("Profiles added successfully")

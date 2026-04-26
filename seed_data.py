@@ -3,67 +3,72 @@ import sqlite3
 def seed_database():
     conn = sqlite3.connect("database.db")
     
-    print("Clearing old test data...")
-    # Optional: Clear out specific test emails if you run this multiple times
+    print("Cleaning up old test data...")
+    # Get all test user IDs to cascade deletes safely
+    test_users = conn.execute("SELECT id FROM users WHERE email LIKE '%@test.com'").fetchall()
+    test_ids = [str(u[0]) for u in test_users]
+    
+    if test_ids:
+        id_list = ",".join(test_ids)
+        conn.execute(f"DELETE FROM profiles WHERE user_id IN ({id_list})")
+        conn.execute(f"DELETE FROM questionnaires WHERE user_id IN ({id_list})")
+        conn.execute(f"DELETE FROM matches WHERE mentor_id IN ({id_list}) OR mentee_id IN ({id_list})")
+        conn.execute(f"DELETE FROM declined_pairs WHERE mentor_id IN ({id_list}) OR mentee_id IN ({id_list})")
+    
     conn.execute("DELETE FROM users WHERE email LIKE '%@test.com'")
+
+    print(" Injecting new complex ecosystem...")
     
-    print("Injecting fake users...")
-    
-    # ==========================================
-    # 1. CREATE USERS
-    # ==========================================
-    # We set status to 'accepted' so the matching engine picks them up
+    # FORMAT: (email, role, domain, experience)
+    # Note: We set availability to 'flexible' and location to 'online' to focus purely on the algorithm's core logic.
     users_data = [
-        # MENTORS
-        ("mentor_tech@test.com", "password", "mentor", "accepted", "computer science", "5 to 7 years", "flexible", "online"),
-        ("mentor_biz@test.com", "password", "mentor", "accepted", "accounting", "10+ years", "weekends", "london"),
-        ("mentor_rookie@test.com", "password", "mentor", "accepted", "computer science", "0 to 1 years", "weekdays", "birmingham"), # Low experience to test failure
+        # --- THE COMPUTER SCIENCE TREE ---
+        ("1_senior_cs@test.com", "mentor", "cybersecurity", "10+ years"),   # Top level
+        ("2_mid_cs@test.com",    "both",   "computer science", "5 to 7 years"),# Middle level
+        ("3_junior_cs@test.com", "mentee", "computer science", "1 to 3 years"),# Bottom level
         
-        # MENTEES
-        ("mentee_cyber@test.com", "password", "mentee", "accepted", "cybersecurity", "0 to 1 years", "weekends", "online"),
-        ("mentee_finance@test.com", "password", "mentee", "accepted", "business", "1 to 3 years", "weekends", "london"),
-        ("mentee_senior@test.com", "password", "mentee", "accepted", "computer science", "3 to 5 years", "weekdays", "birmingham"),
+        # --- THE BUSINESS TREE ---
+        ("4_senior_biz@test.com", "mentor", "business", "7 to 10 years"), # Top level
+        ("5_mid_biz@test.com",    "both",   "accounting", "3 to 5 years"),  # Middle level
+        ("6_junior_biz@test.com", "mentee", "business", "0 to 1 years"),  # Bottom level
     ]
 
-    for email, pwd, role, status, domain, exp, avail, loc in users_data:
+    for email, role, domain, exp in users_data:
         conn.execute("""
             INSERT INTO users (email, password, role, status, domain, experience, availability, location, is_verified)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
-        """, (email, pwd, role, status, domain, exp, avail, loc))
+            VALUES (?, 'password', ?, 'accepted', ?, ?, 'flexible', 'online', 1)
+        """, (email, role, domain, exp))
 
-    # ==========================================
-    # 2. CREATE PROFILES & QUESTIONNAIRES
-    # ==========================================
-    # Fetch the IDs of the users we just created
-    test_users = conn.execute("SELECT id, email, role FROM users WHERE email LIKE '%@test.com'").fetchall()
+    # Fetch newly created users
+    new_users = conn.execute("SELECT id, email, role FROM users WHERE email LIKE '%@test.com'").fetchall()
     
-    # Map emails to their help areas to test the overlap logic
+    # Map exact skills so the algorithm finds overlaps
     help_areas_map = {
-        "mentor_tech@test.com": "python, web development, ai",
-        "mentee_cyber@test.com": "python, networking", # Shares 'python' with tech mentor
+        "1_senior_cs@test.com": "python, architecture, security",
+        "2_mid_cs@test.com":    "python, leadership",
+        "3_junior_cs@test.com": "python, java",
         
-        "mentor_biz@test.com": "leadership, finance, public speaking",
-        "mentee_finance@test.com": "finance, excel", # Shares 'finance' with biz mentor
-        
-        "mentor_rookie@test.com": "python, java",
-        "mentee_senior@test.com": "python, architecture" # Shares 'python', but mentee has MORE experience than mentor
+        "4_senior_biz@test.com": "finance, management, strategy",
+        "5_mid_biz@test.com":    "finance, leadership",
+        "6_junior_biz@test.com": "finance, excel"
     }
 
-    for user in test_users:
-        user_id = user[0]
-        email = user[1]
-        role = user[2]
+    for user in new_users:
+        user_id, email, role = user
         
-        # Create Profile
-        conn.execute("INSERT INTO profiles (user_id, role) VALUES (?, ?)", (user_id, role))
-        
+        #  If role is 'both', they need TWO profiles in the database
+        if role in ["mentor", "both"]:
+            conn.execute("INSERT INTO profiles (user_id, role) VALUES (?, 'mentor')", (user_id,))
+        if role in ["mentee", "both"]:
+            conn.execute("INSERT INTO profiles (user_id, role) VALUES (?, 'mentee')", (user_id,))
+            
         # Create Questionnaire
         help_area = help_areas_map.get(email, "general")
         conn.execute("INSERT INTO questionnaires (user_id, help_areas) VALUES (?, ?)", (user_id, help_area))
 
     conn.commit()
     conn.close()
-    print("✅ Successfully injected 3 Mentors and 3 Mentees!")
+    print("Successfully injected! 2 Mentors, 2 Mentees, and 2 'Both' roles.")
 
 if __name__ == "__main__":
-    seed_database()  
+    seed_database()

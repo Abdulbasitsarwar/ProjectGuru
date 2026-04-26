@@ -124,4 +124,4 @@ CREATE TABLE IF NOT EXISTS meeting_slots (
 conn.commit()
 conn.close()
 
-print("✅ Database fully created for Project GURU")
+print(" Database fully created for Project GURU")

@@ -18,4 +18,4 @@ except:
 conn.commit()
 conn.close()
 
-print("✅ Matches table updated successfully")
+print(" Matches table updated successfully")

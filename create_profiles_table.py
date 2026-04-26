@@ -21,4 +21,4 @@ CREATE TABLE IF NOT EXISTS profiles (
 conn.commit()
 conn.close()
 
-print("✅ Profiles table created successfully")
+print(" Profiles table created successfully")

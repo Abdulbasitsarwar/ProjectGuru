@@ -21,4 +21,4 @@ CREATE TABLE IF NOT EXISTS matches_profiles (
 conn.commit()
 conn.close()
 
-print("✅ Profile-based matches table created")
+print("Profile-based matches table created")

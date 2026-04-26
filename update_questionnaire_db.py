@@ -27,4 +27,4 @@ except:
 conn.commit()
 conn.close()
 
-print("✅ Questionnaire table updated safely.")
+print(" Questionnaire table updated safely.")

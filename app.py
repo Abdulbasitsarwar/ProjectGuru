@@ -9,9 +9,9 @@ app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
 
-# =====================================================
-# 🔐 EMAIL CONFIGURATION (STEP 2 GOES HERE)
-# =====================================================
+
+#  EMAIL CONFIGURATION
+
 
 app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_PORT"] = 587
@@ -21,9 +21,8 @@ app.config["MAIL_PASSWORD"] = "spjgtubburabshaz"
 
 mail = Mail(app)
 
-# =====================================================
 
-# ---------------- ADMIN CREDENTIALS ----------------
+# admin credentials
 
 ADMIN_EMAIL = "admin@guru.com"
 ADMIN_PASSWORD = "wiuj5089"
@@ -52,11 +51,7 @@ def admin_logout():
 
     return redirect("/admin_login")
 
-# ============================================================
-# ---------------- DATABASE CONNECTION ----------------
-# This function connects Flask to the SQLite database
-# Every time we need database access we call get_db()
-# ============================================================
+# Database connection
 
 def get_db():
 
@@ -68,22 +63,8 @@ def get_db():
 
     return conn
 
-
-# ============================================================
-# ---------------- NOTIFICATION HELPER ----------------
-# This function saves a notification for a user.
-#
-# We can call it anywhere in the system.
-#
-# Example usage:
-# create_notification(user_id,
-#                     "You received a new message",
-#                     "/chat/5")
-#
-# user_id  → who receives the notification
-# message  → what the notification says
-# link     → where clicking the notification sends the user
-# ============================================================
+ 
+# notification feature
 
 def create_notification(conn, user_id, message, link=None):
 
@@ -94,7 +75,7 @@ def create_notification(conn, user_id, message, link=None):
 
 
 
-# ---------------- HOME ----------------
+# home page
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -128,7 +109,7 @@ def signup():
 
         verification_code = str(random.randint(100000, 999999))
 
-        # ✅ SEND EMAIL
+        # email verification
         msg = Message(
             subject="Project Guru Verification Code",
             sender=app.config["MAIL_USERNAME"],
@@ -162,7 +143,7 @@ Enter this code to verify your account.
 
         user_id = user["id"]
 
-        # 🔥 CREATE PROFILES BASED ON ROLE
+        # creation of profile based on role chosen
         if role == "mentor":
             conn.execute(
                 "INSERT INTO profiles (user_id, role) VALUES (?, 'mentor')",
@@ -187,7 +168,7 @@ Enter this code to verify your account.
 
         conn.commit()
 
-        # 🔥 LOAD FIRST PROFILE IMMEDIATELY
+        # LOAD FIRST PROFILE IMMEDIATELY
         profile = conn.execute("""
             SELECT * FROM profiles
             WHERE user_id=?
@@ -195,7 +176,7 @@ Enter this code to verify your account.
             LIMIT 1
         """, (user_id,)).fetchone()
 
-        # 🔥 SET SESSION
+        # SET SESSION
         session["user_id"] = user_id
         session["profile_id"] = profile["id"]
         session["active_role"] = profile["role"]
@@ -224,7 +205,7 @@ def forgot_password():
             conn.close()
             return "Email not found"
 
-        # 🔢 Generate reset code
+        # Generate reset code
         reset_code = str(random.randint(100000, 999999))
 
         conn.execute(
@@ -234,7 +215,7 @@ def forgot_password():
         conn.commit()
         conn.close()
 
-        # 📧 Send email
+        # Send email
         msg = Message(
             subject="Project Guru Password Reset Code",
             sender=app.config["MAIL_USERNAME"],
@@ -292,7 +273,7 @@ def reset_password():
         return redirect("/login")
 
     return render_template("reset_password.html")
-
+#verify email code correct or invalid
 @app.route("/verify_email", methods=["GET", "POST"])
 def verify_email():
 
@@ -311,7 +292,7 @@ def verify_email():
             WHERE id=?
         """, (session["user_id"],)).fetchone()
 
-        # ✅ Correct code
+        # Correct code
         if saved and entered_code == saved["verification_code"]:
 
             conn.execute("""
@@ -329,7 +310,7 @@ def verify_email():
         return "Invalid verification code"
 
     return render_template("verify_email.html")
-
+# switch roles on dashboard
 @app.route("/switch_profile/<int:profile_id>")
 def switch_profile(profile_id):
 
@@ -352,7 +333,7 @@ def switch_profile(profile_id):
     session["active_role"] = profile["role"]
 
     return redirect("/dashboard")
-
+#login
 @app.route("/login", methods=["GET", "POST"])
 def login():
 
@@ -368,14 +349,13 @@ def login():
             (email, password)
         ).fetchone()
 
-        # ❌ Invalid credentials
+        #  Invalid credentials
         if not user:
             conn.close()
             return "Invalid credentials"
 
         # ==========================================
-        # 📋 QUESTIONNAIRE GATE FIRST
-        # If user signed up but did not complete form
+        # questionnaire after signing in
         # ==========================================
         if user["status"] == "incomplete":
             session["user_id"] = user["id"]
@@ -383,7 +363,7 @@ def login():
             return redirect("/questionnaire")
 
         # ==========================================
-        # 🔒 EMAIL VERIFICATION GATE SECOND
+        # email verify 2nd 
         # ==========================================
         if user["is_verified"] == 0:
             session["user_id"] = user["id"]
@@ -391,12 +371,12 @@ def login():
             return redirect("/verify_email")
 
         # ==========================================
-        # ✅ NORMAL LOGIN (your original behavior)
+        # normal login
         # ==========================================
         session["user_id"] = user["id"]
 
         # -------------------------------------------------
-        # 🔥 ENSURE USER HAS PROFILES
+        # making sure user has profile verified as well
         # -------------------------------------------------
         profiles = conn.execute("""
             SELECT * FROM profiles
@@ -435,7 +415,7 @@ def login():
             """, (user["id"],)).fetchall()
 
         # -------------------------------------------------
-        # 🔥 LOAD FIRST PROFILE
+        # load first profile
         # -------------------------------------------------
         first_profile = profiles[0]
 
@@ -446,7 +426,7 @@ def login():
 
         return redirect("/dashboard")
 
-    # 🟢 GET request → show login page
+    # GET request → show login page
     return render_template("login.html")
 
 
@@ -486,7 +466,7 @@ def questionnaire():
             VALUES (?, ?)
         """, (user_id, ", ".join(helps)))
 
-        # ✅ PROFESSIONAL NOTIFICATION
+        # PROFESSIONAL NOTIFICATION
         create_notification(
             conn,
             user_id,
@@ -503,8 +483,8 @@ def questionnaire():
     return render_template("questionnaire.html")
 
 # ============================================================
-# --------- ACTIVE PROFILE HELPER ----------------
-# Ensures user has selected a profile (mentor/mentee)
+#  ACTIVE PROFILE HELPER 
+# Ensures user has selected a profile (mentor/mentee or both)
 # ============================================================
 
 def get_active_profile():
@@ -532,9 +512,9 @@ def dashboard():
     conn = get_db()
 
     # =====================================================
-    # 🔥 THE FINAL STEP: TRIGGER EXPIRATION CHECK
+    # TRIGGER EXPIRATION CHECK
     # This automatically clears matches that passed your 
-    # minute-based limit every time a user logs in or 
+    # hour-based limit every time a user logs in or 
     # refreshes their dashboard.
     # =====================================================
     expire_old_matches(conn) 
@@ -564,7 +544,7 @@ def dashboard():
     match = next((m for m in matches if m["status"] == "final"), None)
 
     # =================================================
-    # 📅 MEETING SYSTEM (FILTERING PAST SLOTS)
+    # meeting scheduling slots
     # =================================================
     slots = []
     upcoming_meetings = []
@@ -593,7 +573,7 @@ def dashboard():
                 past_meetings.append(slot)
 
     # =================================================
-    # 🔔 ROLE-AWARE RECENT ACTIVITY
+    # role aware recent activity
     # =================================================
     if role == "mentor":
         notifications = conn.execute("""
@@ -743,7 +723,6 @@ def accept_match(match_id):
     conn.commit()
     conn.close()
 
-    # ✅ IMPORTANT FIX
     return redirect("/match")
 
 
@@ -768,7 +747,7 @@ def decline_match(match_id):
     mentor_id = selected["mentor_id"]
     mentee_id = selected["mentee_id"]
 
-    # ❌ Mark match as declined
+    #  Mark match as declined
     conn.execute("""
         UPDATE matches
         SET status='declined',
@@ -777,13 +756,13 @@ def decline_match(match_id):
         WHERE id=?
     """, (match_id,))
 
-    # 🚫 Prevent these two from matching again
+    #  Prevent these two from matching again
     conn.execute("""
         INSERT INTO declined_pairs (mentor_id, mentee_id)
         VALUES (?, ?)
     """, (mentor_id, mentee_id))
 
-    # 🔓 Restore hidden suggestions for BOTH users
+    # Restore hidden suggestions for BOTH users
     conn.execute("""
         UPDATE matches
         SET status='pending'
@@ -791,7 +770,7 @@ def decline_match(match_id):
         AND (mentor_id=? OR mentee_id=?)
     """, (mentor_id, mentee_id))
 
-    # 🔔 Notify users
+    # Notify users
     create_notification(
         conn,
         mentor_id,
@@ -874,14 +853,14 @@ def admin():
     conn = get_db()
 
     # =====================================================
-    # 🔥 THE FINAL STEP: TRIGGER EXPIRATION CHECK
+    #  EXPIRATION CHECK
     # This runs every time you refresh the admin page
     # =====================================================
     expire_old_matches(conn)
     conn.commit()
 
     # =====================================================
-    # 🔎 USER SEARCH / FILTER
+    #  USER SEARCH / FILTER
     # =====================================================
     search = request.args.get("search", "").strip()
 
@@ -906,7 +885,7 @@ def admin():
             """).fetchall()
 
 # =====================================================
-    # 🔎 MATCH SEARCH / FILTER
+    # MATCH SEARCH / FILTER
     # =====================================================
     match_search = request.args.get("match_search", "").strip()
 
@@ -943,9 +922,9 @@ def admin():
         """).fetchall()
         
     # =====================================================
-    # 📊 STATS & SETTINGS
+    # STATS & SETTINGS
     # =====================================================
-    # Get current expiry limit to show in the UI
+    #  current expiry limit to show in the UI
     expiry_setting = conn.execute("SELECT value FROM settings WHERE key='match_expiry_hours'").fetchone()
     current_expiry = expiry_setting["value"] if expiry_setting else "48"
 
@@ -985,7 +964,7 @@ def approve_user(user_id):
         (user_id,)
     )
 
-    # ✅ PROFESSIONAL NOTIFICATION
+    # PROFESSIONAL NOTIFICATION
     create_notification(
         conn,
         user_id,
@@ -1006,7 +985,7 @@ def remove_user(user_id):
     conn = get_db()
 
     # --------------------------------------------------
-    # 1️⃣ Find any matches involving this user
+    # 1️Find any matches involving this user
     # --------------------------------------------------
     matches = conn.execute("""
         SELECT id, mentor_id, mentee_id
@@ -1015,7 +994,7 @@ def remove_user(user_id):
     """, (user_id, user_id)).fetchall()
 
     # --------------------------------------------------
-    # 2️⃣ Notify the OTHER user + prevent re-matching
+    # Notify the OTHER user + prevent re-matching
     # --------------------------------------------------
     for m in matches:
 
@@ -1036,7 +1015,7 @@ def remove_user(user_id):
         """, (m["mentor_id"], m["mentee_id"]))
 
     # --------------------------------------------------
-    # 3️⃣ Delete matches involving this user
+    # Delete matches involving this user
     # --------------------------------------------------
     conn.execute("""
         DELETE FROM matches
@@ -1044,7 +1023,7 @@ def remove_user(user_id):
     """, (user_id, user_id))
 
     # --------------------------------------------------
-    # 4️⃣ Delete questionnaire
+    # Delete questionnaire
     # --------------------------------------------------
     conn.execute("""
         DELETE FROM questionnaires
@@ -1052,7 +1031,7 @@ def remove_user(user_id):
     """, (user_id,))
 
     # --------------------------------------------------
-    # 5️⃣ Delete user account
+    #  Delete user account
     # --------------------------------------------------
     conn.execute("""
         DELETE FROM users
@@ -1157,15 +1136,15 @@ def generate_matches():
 
     for mentor in mentors:
         for mentee in mentees:
-            # ❌ RULE: Cannot match with yourself
+            #  RULE: Cannot match with yourself
             if mentor["id"] == mentee["id"]:
                 continue
 
-            # ❌ RULE: Skip users already locked in another match
+            #  RULE: Skip users already locked in another match
             if mentor["id"] in busy_ids or mentee["id"] in busy_ids:
                 continue
 
-            # ❌ RULE: Never re-match a pair that was previously declined or expired
+            #  RULE: Never re-match a pair that was previously declined or expired
             declined = conn.execute("""
                 SELECT 1 FROM declined_pairs
                 WHERE mentor_id=? AND mentee_id=?
@@ -1174,7 +1153,7 @@ def generate_matches():
             if declined:
                 continue
 
-            # ❌ RULE: Skip if a suggestion already exists in the system
+            #  RULE: Skip if a suggestion already exists in the system
             existing = conn.execute("""
                 SELECT 1 FROM matches
                 WHERE mentor_id=? AND mentee_id=?
@@ -1229,8 +1208,8 @@ def approve_match(match_id):
         WHERE id=?
     """, (match_id,))
 
-    # 2. BULLETPROOF HIDE: Hide all other 'pending' suggestions involving EITHER user
-    # Using 'IN (?, ?)' guarantees we catch them whether they are listed as mentor or mentee!
+    # 2.  Hide all other 'pending' suggestions involving EITHER user
+    #  guarantees we catch them whether they are listed as mentor or mentee!
     conn.execute("""
         UPDATE matches
         SET status='hidden'
@@ -1264,7 +1243,7 @@ def my_match():
     if "user_id" not in session:
         return redirect("/login")
 
-    # 🔥 Get ACTIVE PROFILE (mentor or mentee)
+    #  ACTIVE PROFILE (mentor or mentee)
     profile = get_active_profile()
 
     if not profile:
@@ -1275,7 +1254,7 @@ def my_match():
     user_id = session["user_id"]
 
     # ====================================================
-    # 🔥 GET MATCH BASED ON ACTIVE ROLE ONLY
+    #  MATCH BASED ON ACTIVE ROLE ONLY
     # ====================================================
     if role == "mentor":
         match = conn.execute("""
@@ -1305,7 +1284,7 @@ def my_match():
         mentee_q = conn.execute("SELECT * FROM questionnaires WHERE user_id=?", (match["mentee_id"],)).fetchone()
 
     # ====================================================
-    # 🔥 FINAL MATCHES (for navbar chat link)
+    #  FINAL MATCHES (for navbar chat link)
     # ====================================================
     matches = conn.execute("""
         SELECT * FROM matches 
@@ -1358,7 +1337,7 @@ def chat_home():
     conn = get_db()
     user_id = session["user_id"]
 
-    # 🔥 Get ACTIVE PROFILE (mentor or mentee)
+    #  ACTIVE PROFILE (mentor or mentee)
     profile = get_active_profile()
 
     if not profile:
@@ -1367,7 +1346,7 @@ def chat_home():
 
     role = profile["role"]
 
-    # 🔎 Find FINAL match for this role
+    # Find FINAL match for this role
     if role == "mentor":
         match = conn.execute("""
             SELECT id FROM matches
@@ -1383,27 +1362,27 @@ def chat_home():
     conn.close()
 
     # ===============================
-    # ✔ If match exists → open chat
+    # If match exists → open chat
     # ===============================
     if match:
         return redirect(f"/chat/{match['id']}")
 
     # ===============================
-    # ❌ If NO match → show message
+    # if NO match → show message
     # ===============================
     return render_template("no_chat.html")
 # ---------------- CHAT ----------------
 @app.route("/chat/<int:match_id>", methods=["GET", "POST"])
 def chat(match_id):
 
-    # 🔐 Check login
+    # Check login
     if "user_id" not in session:
         return redirect("/login")
 
     conn = get_db()
     user_id = session["user_id"]
 
-    # 🔍 Get match
+    # Get match
     match = conn.execute("""
         SELECT m.*, 
                u1.email AS mentor_email,
@@ -1414,12 +1393,12 @@ def chat(match_id):
         WHERE m.id=? AND m.status='final'
     """, (match_id,)).fetchone()
 
-    # ❌ Match not found
+    #  Match not found
     if not match:
         conn.close()
         return "Chat not available"
 
-    # 🔐 Ensure user belongs to this match
+    #  Ensure user belongs to this match
     if user_id != match["mentor_id"] and user_id != match["mentee_id"]:
         conn.close()
         return "Access denied"
@@ -1551,7 +1530,7 @@ def profile():
     if "user_id" not in session:
         return redirect("/login")
 
-    # 🔥 Get ACTIVE PROFILE (mentor or mentee)
+    #  ACTIVE PROFILE (mentor or mentee)
     profile = get_active_profile()
 
     if not profile:
@@ -1572,7 +1551,7 @@ def profile():
     """,(session["user_id"],)).fetchone()
 
     # -------------------------------------------------
-    # 🔥 MATCHES BASED ON ACTIVE ROLE ONLY
+    #  MATCHES BASED ON ACTIVE ROLE ONLY
     # -------------------------------------------------
     if role == "mentor":
         matches = conn.execute("""
@@ -1601,7 +1580,7 @@ def settings():
     if "user_id" not in session:
         return redirect("/login")
 
-    # 🔥 Get ACTIVE PROFILE (mentor or mentee)
+    # ACTIVE PROFILE (mentor or mentee)
     profile = get_active_profile()
 
     if not profile:
@@ -1612,7 +1591,7 @@ def settings():
     conn = get_db()
 
     # -------------------------------------------------
-    # 🔥 LOAD MATCHES BASED ON ACTIVE ROLE ONLY
+    #LOAD MATCHES BASED ON ACTIVE ROLE ONLY
     # -------------------------------------------------
     if role == "mentor":
         matches = conn.execute("""
@@ -1868,13 +1847,13 @@ def mentor_cancel_meeting(slot_id):
         conn.close()
         return "Unauthorized"
 
-    # ❌ DELETE SLOT COMPLETELY
+    #  DELETE SLOT COMPLETELY
     conn.execute(
         "DELETE FROM meeting_slots WHERE id=?",
         (slot_id,)
     )
 
-    # 🔔 Notify mentee
+    # Notify mentee
     if slot["mentee_id"]:
         create_notification(
             conn,
@@ -1964,7 +1943,7 @@ def add_availability(match_id):
     # -----------------------------------------
     if selected_date < date.today():
         conn.close()
-        return "❌ Cannot add availability for past dates"
+        return " Cannot add availability for past dates"
 
     # -----------------------------------------
     # Convert start and end time
@@ -1977,7 +1956,7 @@ def add_availability(match_id):
     # -----------------------------------------
     if end <= start:
         conn.close()
-        return "❌ End time must be after start time"
+        return " End time must be after start time"
 
     # -----------------------------------------
     # RULE 3 — prevent mentor adding past time today
@@ -1986,7 +1965,7 @@ def add_availability(match_id):
 
     if selected_date == now.date() and start.time() <= now.time():
         conn.close()
-        return "❌ Start time must be in the future"
+        return " Start time must be in the future"
 
     # -----------------------------------------
     # Save the availability block
@@ -2067,7 +2046,7 @@ def give_feedback(match_id):
     conn = get_db()
     user_id = session["user_id"]
 
-    # ✅ Only allow feedback on FINAL matches
+    #  Only allow feedback on FINAL matches
     match = conn.execute(
         "SELECT * FROM matches WHERE id=? AND status='final'",
         (match_id,)
@@ -2077,7 +2056,7 @@ def give_feedback(match_id):
         conn.close()
         return redirect("/dashboard")
 
-    # ✅ Determine who is reviewing whom
+    #  Determine who is reviewing whom
     if user_id == match["mentor_id"]:
         to_user = match["mentee_id"]
 
@@ -2089,7 +2068,7 @@ def give_feedback(match_id):
         conn.close()
         return redirect("/dashboard")
 
-    # ✅ Get form values safely
+    #  Get form values safely
     rating = request.form.get("rating")
     comment = request.form.get("comment", "").strip()
 
@@ -2098,7 +2077,7 @@ def give_feedback(match_id):
         conn.close()
         return redirect("/dashboard")
 
-    # ✅ Insert feedback WITH timestamp
+    #  Insert feedback WITH timestamp
     conn.execute("""
         INSERT INTO feedback 
         (match_id, from_user, to_user, rating, comment, created_at)
@@ -2232,8 +2211,8 @@ def expire_old_matches(conn):
         # Convert the stored database time string into a Python time object
         created = datetime.strptime(m["created_at"], "%Y-%m-%d %H:%M:%S")
 
-        # ⭐ TESTING MODE: Changed 'hours=expiry_limit' to 'minutes=expiry_limit'
-        if datetime.now() - created > timedelta(minutes=expiry_limit):
+        #  TESTING MODE: Changed 'hours=expiry_limit' to 'minutes=expiry_limit'
+        if datetime.utcnow() - created > timedelta(minutes=expiry_limit):
             
             # Mark the match as expired so it disappears from the user's view
             conn.execute("UPDATE matches SET status='expired' WHERE id=?", (m["id"],))
