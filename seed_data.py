@@ -1,74 +1,62 @@
 import sqlite3
 
-def seed_database():
+def seed_exact_html():
     conn = sqlite3.connect("database.db")
     
-    print("Cleaning up old test data...")
-    # Get all test user IDs to cascade deletes safely
-    test_users = conn.execute("SELECT id FROM users WHERE email LIKE '%@test.com'").fetchall()
-    test_ids = [str(u[0]) for u in test_users]
-    
-    if test_ids:
-        id_list = ",".join(test_ids)
-        conn.execute(f"DELETE FROM profiles WHERE user_id IN ({id_list})")
-        conn.execute(f"DELETE FROM questionnaires WHERE user_id IN ({id_list})")
-        conn.execute(f"DELETE FROM matches WHERE mentor_id IN ({id_list}) OR mentee_id IN ({id_list})")
-        conn.execute(f"DELETE FROM declined_pairs WHERE mentor_id IN ({id_list}) OR mentee_id IN ({id_list})")
-    
-    conn.execute("DELETE FROM users WHERE email LIKE '%@test.com'")
+    print(" Wiping database to start fresh...")
+    tables = ["users", "profiles", "questionnaires", "matches", "declined_pairs", "meeting_slots", "mentor_availability", "feedback", "notifications", "messages"]
+    for t in tables:
+        try: conn.execute(f"DELETE FROM {t}")
+        except: pass
 
-    print(" Injecting new complex ecosystem...")
+    print("🌱 Injecting users using EXACT HTML form values...")
     
-    # FORMAT: (email, role, domain, experience)
-    # Note: We set availability to 'flexible' and location to 'online' to focus purely on the algorithm's core logic.
+    # Format: (email, role, level, experience, domain, availability, location)
+    # Using exact strings from your <select> options
     users_data = [
-        # --- THE COMPUTER SCIENCE TREE ---
-        ("1_senior_cs@test.com", "mentor", "cybersecurity", "10+ years"),   # Top level
-        ("2_mid_cs@test.com",    "both",   "computer science", "5 to 7 years"),# Middle level
-        ("3_junior_cs@test.com", "mentee", "computer science", "1 to 3 years"),# Bottom level
+        # --- TREE 1: The Perfect Match Chain ---
+        ("senior_cs@test.com", "mentor", "lecturer", "10+", "computer_science", "both", "flexible"),
+        ("mid_both_1@test.com", "both", "phd", "3-5", "computer_science", "both", "flexible"),
+        ("junior_cs@test.com", "mentee", "undergraduate", "0-1", "computer_science", "both", "flexible"),
         
-        # --- THE BUSINESS TREE ---
-        ("4_senior_biz@test.com", "mentor", "business", "7 to 10 years"), # Top level
-        ("5_mid_biz@test.com",    "both",   "accounting", "3 to 5 years"),  # Middle level
-        ("6_junior_biz@test.com", "mentee", "business", "0 to 1 years"),  # Bottom level
+        # --- TREE 2: The Isolated "Both" Profile Test ---
+        # This user is "both". We will match them with a Senior as a Mentee.
+        # But we will NOT create a junior business student, so their Mentor profile will be empty!
+        ("mid_both_2@test.com", "both", "postgraduate", "1-3", "business", "weekdays", "abs"),
+        ("senior_biz@test.com", "mentor", "admin_staff", "7-10", "business", "weekdays", "abs"),
     ]
 
-    for email, role, domain, exp in users_data:
+    for email, role, level, exp, domain, avail, loc in users_data:
         conn.execute("""
-            INSERT INTO users (email, password, role, status, domain, experience, availability, location, is_verified)
-            VALUES (?, 'password', ?, 'accepted', ?, ?, 'flexible', 'online', 1)
-        """, (email, role, domain, exp))
+            INSERT INTO users (email, password, role, status, level, experience, domain, availability, location, is_verified)
+            VALUES (?, 'password', ?, 'accepted', ?, ?, ?, ?, ?, 1)
+        """, (email, role, level, exp, domain, avail, loc))
 
-    # Fetch newly created users
-    new_users = conn.execute("SELECT id, email, role FROM users WHERE email LIKE '%@test.com'").fetchall()
+    users = conn.execute("SELECT id, email, role FROM users").fetchall()
     
-    # Map exact skills so the algorithm finds overlaps
-    help_areas_map = {
-        "1_senior_cs@test.com": "python, architecture, security",
-        "2_mid_cs@test.com":    "python, leadership",
-        "3_junior_cs@test.com": "python, java",
+    # Using exact strings from your <input type="checkbox"> options
+    help_areas = {
+        "senior_cs@test.com": "cv, career",
+        "mid_both_1@test.com": "cv, placements",
+        "junior_cs@test.com": "placements",
         
-        "4_senior_biz@test.com": "finance, management, strategy",
-        "5_mid_biz@test.com":    "finance, leadership",
-        "6_junior_biz@test.com": "finance, excel"
+        "mid_both_2@test.com": "leadership, professional_dev",
+        "senior_biz@test.com": "leadership, professional_dev"
     }
 
-    for user in new_users:
-        user_id, email, role = user
-        
-        #  If role is 'both', they need TWO profiles in the database
+    for u_id, email, role in users:
+        # Create correct profiles
         if role in ["mentor", "both"]:
-            conn.execute("INSERT INTO profiles (user_id, role) VALUES (?, 'mentor')", (user_id,))
+            conn.execute("INSERT INTO profiles (user_id, role) VALUES (?, 'mentor')", (u_id,))
         if role in ["mentee", "both"]:
-            conn.execute("INSERT INTO profiles (user_id, role) VALUES (?, 'mentee')", (user_id,))
+            conn.execute("INSERT INTO profiles (user_id, role) VALUES (?, 'mentee')", (u_id,))
             
-        # Create Questionnaire
-        help_area = help_areas_map.get(email, "general")
-        conn.execute("INSERT INTO questionnaires (user_id, help_areas) VALUES (?, ?)", (user_id, help_area))
+        # Insert exact checkbox values
+        conn.execute("INSERT INTO questionnaires (user_id, help_areas) VALUES (?, ?)", (u_id, help_areas[email]))
 
     conn.commit()
     conn.close()
-    print("Successfully injected! 2 Mentors, 2 Mentees, and 2 'Both' roles.")
+    print(" System successfully loaded with EXACT HTML values!")
 
 if __name__ == "__main__":
-    seed_database()
+    seed_exact_html()

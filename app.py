@@ -1211,12 +1211,12 @@ def approve_match(match_id):
     # 2.  Hide all other 'pending' suggestions involving EITHER user
     #  guarantees we catch them whether they are listed as mentor or mentee!
     conn.execute("""
-        UPDATE matches
-        SET status='hidden'
-        WHERE id != ?
-        AND status='pending'
-        AND (mentor_id IN (?, ?) OR mentee_id IN (?, ?))
-    """, (match_id, m_id, e_id, m_id, e_id))
+            UPDATE matches
+            SET status='hidden'
+            WHERE id != ?
+            AND status='pending'
+            AND (mentor_id = ? OR mentee_id = ?)
+        """, (match_id, m_id, e_id))
 
     # 3. Notify both users
     create_notification(conn, m_id, "Admin has approved a match for you. Please Accept or Decline.", "/match")
