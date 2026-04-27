@@ -204,15 +204,15 @@
         <h5>System Settings</h5>
         <form action="/update_expiry" method="POST" class="row g-3">
             <div class="col-auto">
-                <label class="form-label fw-bold">Match Expiry (Testing in Minutes):</label>
-                <input type="number" name="hours" class="form-control" value="{{ current_expiry }}" required>
+                <label class="form-label fw-bold">Match Expiry :</label>
+                <input type="number" name="hours" class="form-control" value="{{ current_expiry_hours }}" min="1" required>
             </div>
             <div class="col-auto d-flex align-items-end">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
             </div>
         </form>
         <p class="text-muted mt-2 small">
-            Current setting: <strong>{{ current_expiry }} minutes</strong>
+            Current setting: <strong>{{ current_expiry_hours }} hours</strong>
         </p>
     </div>
 

@@ -2190,44 +2190,48 @@ def clear_slots():
     return "All meeting slots deleted"
 
 def expire_old_matches(conn):
-    # 1. Get the current limit from the settings table
+    # Get expiry limit from settings (in hours)
     setting = conn.execute("""
         SELECT value FROM settings
         WHERE key='match_expiry_hours'
     """).fetchone()
 
-    # Default to 48 if no setting is found in the database
-    expiry_limit = int(setting["value"]) if setting else 48
+    expiry_limit_hours = int(setting["value"]) if setting else 48
 
-    # 2. Find all matches approved by admin that haven't been finalized yet
-    expired = conn.execute("""
+    # Get approved matches
+    matches = conn.execute("""
         SELECT id, mentor_id, mentee_id, created_at
         FROM matches
         WHERE status='approved'
         AND created_at IS NOT NULL
     """).fetchall()
 
-    for m in expired:
-        # Convert the stored database time string into a Python time object
+    for m in matches:
         created = datetime.strptime(m["created_at"], "%Y-%m-%d %H:%M:%S")
 
-        #  TESTING MODE: Changed 'hours=expiry_limit' to 'minutes=expiry_limit'
-        if datetime.utcnow() - created > timedelta(minutes=expiry_limit):
-            
-            # Mark the match as expired so it disappears from the user's view
-            conn.execute("UPDATE matches SET status='expired' WHERE id=?", (m["id"],))
+        # Expiry check
+        if datetime.utcnow() - created > timedelta(hours=expiry_limit_hours):
 
-            # Block these two users from being suggested together again
+            # Expire match
+            conn.execute(
+                "UPDATE matches SET status='expired' WHERE id=?",
+                (m["id"],)
+            )
+
+            # Prevent re-matching
             conn.execute("""
                 INSERT OR IGNORE INTO declined_pairs (mentor_id, mentee_id)
                 VALUES (?, ?)
             """, (m["mentor_id"], m["mentee_id"]))
 
-            # Unhide other pending matches for these users so they can find someone else
+            # Restore hidden matches
             conn.execute("""
                 UPDATE matches SET status='pending'
-                WHERE status='hidden' AND (mentor_id=? OR mentee_id=?)
+                WHERE status='hidden'
+                AND (mentor_id=? OR mentee_id=?)
             """, (m["mentor_id"], m["mentee_id"]))
+
+    conn.commit()
             
 @app.route("/update_expiry", methods=["POST"])
 def update_expiry():
