@@ -35,7 +35,7 @@ def admin_login():
         email = request.form.get("email")
         password = request.form.get("password")
 
-        # 🔐 Check against backend credentials
+        #  Check against backend credentials
         if email == ADMIN_EMAIL and password == ADMIN_PASSWORD:
             session["admin_logged_in"] = True
             return redirect("/admin")
@@ -56,9 +56,6 @@ def admin_logout():
 def get_db():
 
     conn = sqlite3.connect("database.db", timeout=30)
-
-    # This allows us to access columns like:
-    # user["email"] instead of user[0]
     conn.row_factory = sqlite3.Row
 
     return conn
@@ -1049,54 +1046,98 @@ def calculate_score(mentor, mentee, conn):
     reasons = []
 
     # 1. HELP AREAS (Mandatory Overlap)
-    mentor_data = conn.execute("SELECT help_areas FROM questionnaires WHERE user_id=?", (mentor["id"],)).fetchone()
-    mentee_data = conn.execute("SELECT help_areas FROM questionnaires WHERE user_id=?", (mentee["id"],)).fetchone()
+    mentor_data = conn.execute(
+        "SELECT help_areas FROM questionnaires WHERE user_id=?",
+        (mentor["id"],)
+    ).fetchone()
+
+    mentee_data = conn.execute(
+        "SELECT help_areas FROM questionnaires WHERE user_id=?",
+        (mentee["id"],)
+    ).fetchone()
 
     if not mentor_data or not mentee_data:
         return 0, "Missing questionnaire"
 
-    m_set = set(mentor_data["help_areas"].lower().split(", "))
-    e_set = set(mentee_data["help_areas"].lower().split(", "))
+    m_set = {x.strip().lower() for x in mentor_data["help_areas"].split(",") if x.strip()}
+    e_set = {x.strip().lower() for x in mentee_data["help_areas"].split(",") if x.strip()}
+
     common = m_set & e_set
 
     if not common:
         return 0, "No shared support areas"
-    
-    score += (len(common) * 2) 
-    reasons.append(f"Shared: {', '.join(common)}")
 
-    # 2. DOMAIN CHECK (Flexible Business/Computer Science Groups)
-    groups = [{"business", "accounting"}, {"computer science", "cybersecurity"}]
-    m_dom = mentor["domain"].lower()
-    e_dom = mentee["domain"].lower()
-    
-    match_group = False
-    for g in groups:
-        if m_dom in g and e_dom in g:
-            match_group = True
-    
-    if not match_group and m_dom != e_dom:
+    score += len(common) * 2
+    reasons.append(f"Shared support areas: {', '.join(common)}")
+
+    # 2. DOMAIN CHECK
+    groups = [
+        {"business", "finance", "engineering"},
+        {"computer_science", "cyber_security"},
+        {"medicine", "optometry", "psychology"},
+        {"law", "other"}
+    ]
+
+    m_dom = mentor["domain"].strip().lower()
+    e_dom = mentee["domain"].strip().lower()
+
+    same_group = any(m_dom in group and e_dom in group for group in groups)
+
+    if m_dom != e_dom and not same_group:
         return 0, f"Domain mismatch ({m_dom} vs {e_dom})"
-    
-    score += 2 if m_dom == e_dom else 1
-    reasons.append("Compatible Domain")
 
-    # 3. EXPERIENCE CHECK (Mentor must be >= Mentee)
-    exp_map = {"0 to 1 years": 1, "1 to 3 years": 2, "3 to 5 years": 3, "5 to 7 years": 4, "7 to 10 years": 5, "10+ years": 6}
-    m_exp = exp_map.get(mentor["experience"].lower(), 0)
-    e_exp = exp_map.get(mentee["experience"].lower(), 0)
+    score += 2 if m_dom == e_dom else 1
+    reasons.append("Compatible domain")
+
+    # 3. EXPERIENCE CHECK (Mentor must be same or more experienced)
+    exp_map = {
+        "0-1": 1,
+        "1-3": 2,
+        "3-5": 3,
+        "5-7": 4,
+        "7-10": 5,
+        "10+": 6
+    }
+
+    m_exp = exp_map.get(mentor["experience"].strip().lower(), 0)
+    e_exp = exp_map.get(mentee["experience"].strip().lower(), 0)
+
+    if m_exp == 0 or e_exp == 0:
+        return 0, "Invalid experience value"
 
     if m_exp < e_exp:
         return 0, "Mentor less experienced"
-    
-    score += (m_exp - e_exp) + 1
-    reasons.append("Experience Valid")
 
-    # 4. AVAILABILITY & LOCATION
-    if mentor["availability"] == mentee["availability"] or mentor["availability"] == "both":
-        score += 1
-    if mentor["location"] == mentee["location"] or mentor["location"] == "flexible":
-        score += 1
+    score += (m_exp - e_exp) + 1
+    reasons.append("Experience valid")
+
+    # 4. AVAILABILITY CHECK (same availability or either selected Both)
+    m_avail = mentor["availability"].strip().lower()
+    e_avail = mentee["availability"].strip().lower()
+
+    if not (
+        m_avail == e_avail
+        or m_avail == "both"
+        or e_avail == "both"
+    ):
+        return 0, "Availability mismatch"
+
+    score += 1
+    reasons.append("Availability compatible")
+
+    # 5. LOCATION CHECK (same location or either selected Flexible)
+    m_loc = mentor["location"].strip().lower()
+    e_loc = mentee["location"].strip().lower()
+
+    if not (
+        m_loc == e_loc
+        or m_loc == "flexible"
+        or e_loc == "flexible"
+    ):
+        return 0, "Location mismatch"
+
+    score += 1
+    reasons.append("Location compatible")
 
     return min(score, 10), ", ".join(reasons)
 
