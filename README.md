@@ -20,6 +20,10 @@ A web-based mentoring system designed to improve mentor-mentee matching in unive
 3. Run:
    python app.py
 4. Open http://127.0.0.1:5000
+5. For admin access http://127.0.0.1:5000/admin_login
+6. Admin credentials  email
+   Email : admin@guru.com
+   Password: wiuj5089
 
 ## Author
 Abdul Basit Sarwar
